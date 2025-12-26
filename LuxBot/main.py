@@ -1,9 +1,11 @@
 import discord
+import requests
 from discord.ext import commands
 import logging
 from dotenv import load_dotenv
 import os
 
+FLASK_BASE_URL = "http://127.0.0.1:5001"
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
 
@@ -34,9 +36,33 @@ async def on_message(message):
 @bot.command()
 async def buytoken(ctx):
     await ctx.message.delete()
+
     msg = await ctx.message.channel.send(f"{ctx.message.author.mention} check your DMs!")
     await msg.delete(delay=5)
-    await ctx.author.send(f"{ctx.message.author.mention} here is our stripe link!")
+
+    try:
+        response = requests.post(
+            f"{FLASK_BASE_URL}/create-checkout",
+            json={"discord_id": ctx.message.author.id},
+            timeout=10
+        )
+    except requests.RequestException:
+        await ctx.author.send("Payment Service Unavailable")
+        return
+    if response.status_code != 200:
+        await ctx.author.send("Failed to generate payment link")
+        return
+
+    data = response.json()
+    payment_url = data.get('payment_url')
+
+    if not payment_url:
+        await ctx.author.send("Payment Link Missing")
+        return
+
+    await ctx.author.send(
+        f"**Complete your payment here:** \n{payment_url}"
+    )
 
 
 bot.run(token, log_handler=handler, log_level=logging.DEBUG)
