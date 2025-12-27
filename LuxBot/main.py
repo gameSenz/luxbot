@@ -23,6 +23,7 @@ async def on_ready():
     print(bot.user.id)
     print('------')
 
+# Test for language filtering
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
@@ -33,14 +34,18 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
+# User command to initiate checkout sequence through Stripe
 @bot.command()
 async def buytoken(ctx):
     await ctx.message.delete()
 
+    # Inform User through channel where command was placed to check PMs
     msg = await ctx.message.channel.send(f"{ctx.message.author.mention} check your DMs!")
     await msg.delete(delay=5)
 
+    # FlaskAPI containing Stripe integrations is called
     try:
+        # sends Discord UserID to Flask API
         response = requests.post(
             f"{FLASK_BASE_URL}/create-checkout",
             json={"discord_id": ctx.message.author.id},
@@ -53,6 +58,7 @@ async def buytoken(ctx):
         await ctx.author.send("Failed to generate payment link")
         return
 
+    # Gets generated payment link, or error if unable to be generated
     data = response.json()
     payment_url = data.get('payment_url')
 
@@ -60,6 +66,7 @@ async def buytoken(ctx):
         await ctx.author.send("Payment Link Missing")
         return
 
+    #User is sent via PM
     await ctx.author.send(
         f"**Complete your payment here:** \n{payment_url}"
     )

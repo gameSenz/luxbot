@@ -8,29 +8,24 @@ load_dotenv()
 
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 stripe_webhook_key = os.getenv('STRIPE_WEBHOOK_SECRET')
-price_id = 'price_1SiSKw1JlFuoKmRQmzTACToY'
-
+tenToken_id = 'price_1SiSKw1JlFuoKmRQmzTACToY'
+twentyToken_id = 'price_1SilIH1JlFuoKmRQTD9zxIX3'
 app = Flask(__name__)
 
 import os
-print("✅ RUNNING FILE:", os.path.abspath(__file__))
 
-print("✅ LOADED UPDATED app.py WITH /ping")
-
-
-@app.route("/ping", methods=["GET"])
-def ping():
-    return "pong", 200
-
+# POST request in order to generate a checkout on Stripe through Discord Bot + User ID
 @app.route('/create-checkout', methods=['POST'])
 def create_checkout():
+    # JSON to hold the user's Discord ID from Bot Frontend
     data = request.get_json(silent=True) or {}
     discord_id = data['discord_id']
     if not discord_id:
         return abort(400, description="Discord ID not provided")
 
+    #Stripe Checkout Session Obj, https://docs.stripe.com/api/checkout/sessions/object
     session = stripe.checkout.Session.create(
-        line_items=[{"price": price_id, "quantity": 1}],
+        line_items=[{"price": tenToken_id, "quantity": 1}],
         mode='payment',
         success_url=url_for('payment_complete', _external=True),
         cancel_url = url_for('cancel', _external=True),
@@ -39,24 +34,29 @@ def create_checkout():
 
     return {"payment_url": session.url, "session_id": session.id}, 200
 
-
+# Success Message to user
 @app.route('/payment-complete', methods=['GET'])
 def payment_complete():
     return "Payment Complete, return to discord", 200
 
+# Cancellation Message to User
 @app.route("/cancel", methods=["GET"])
 def cancel():
     return "Payment cancelled — return to Discord.", 200
 
+# Webhook to verify checkout is complete, and payout tokens to User
 @app.route('/stripe-webhook', methods=['POST'])
 def stripe_webhook():
+    # payload direct from webhook
     stripe_payload = request.get_data()
+    # validate signature from stripe
     sig_header = request.headers.get('Stripe-Signature')
     if not sig_header:
         return abort(400, description="Signature not provided")
     event = None
 
     try:
+        # Constructs Stripe Event Obj ft Validation
         event = stripe.Webhook.construct_event(
             payload=stripe_payload,
             sig_header=sig_header,
@@ -71,13 +71,20 @@ def stripe_webhook():
         print('Error verifying webhook signature: {}'.format(str(e)))
         return abort(400, description="Invalid Signature")
 
+    # Ensures that event received is a complete checkout session
     if event['type'] == 'checkout.session.completed':
+        # Data has info on the session obj
+        # https://docs.stripe.com/api/checkout/sessions/object
         session = event["data"]["object"]
 
+        # Gets discord ID through metadata created with checkout session
         discord_id = session.get("metadata", {}).get("discord_id")
         if not discord_id:
             return abort(400, description="Discord ID not provided")
 
+        # NeatQ API Integration to adjust user's points (aka Tokens)
+        # https://api.neatqueue.com/docs#/Commands/add_stats_api_v2_add_stats_post
+        # Generating JSON to send to API
         bot_payload = {
             "channel_id": 1442266661737725974,
             "stat": 'points',
@@ -85,12 +92,12 @@ def stripe_webhook():
             "user_id": int(discord_id),
             "role_id": None
         }
-
+        # Authenticating API Key + Declaring JSON to be sent
         headers = {
             "Authorization": os.getenv("NEATQUEUE_KEY"),
             "Content-Type": "application/json",
             }
-
+        # send a POST req to NeatQ to process point change
         response = requests.post(
             "https://api.neatqueue.com/api/v2/add/stats",
             json=bot_payload,
@@ -103,8 +110,6 @@ def stripe_webhook():
 
 
     return '', 200
-
-print("✅ ROUTES:", app.url_map)
 
 if __name__ == '__main__':
     app.run(port=5001)
