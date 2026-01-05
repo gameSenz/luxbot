@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import os
 from views.token_shop import TokenShopView
 
-FLASK_BASE_URL = f"http://localhost:{os.getenv('PORT',default="8080")}"
+FLASK_BASE_URL = f"http://127.0.0.1:{os.getenv('PORT', '8080')}"
 intents = discord.Intents.default()
 intents.members = True
 load_dotenv()

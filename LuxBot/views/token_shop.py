@@ -33,7 +33,7 @@ class TokenSelect(discord.ui.Select):
         }
         print(payload)
 
-        await interaction.response.defer()
+        # await interaction.response.defer()
 
         try:
             # Attempts to communicate with Flask app to generate checkout
