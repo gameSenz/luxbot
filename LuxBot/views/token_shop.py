@@ -25,11 +25,13 @@ class TokenSelect(discord.ui.Select):
         )
 
     async def callback(self, interaction: discord.Interaction):
+        print("callback")
         product = self.values[0]
         payload = {
             "discord_id": str(interaction.user.id),
             "product": product,  # backend maps this -> price_id
         }
+        print(payload)
 
         try:
             # Attempts to communicate with Flask app to generate checkout

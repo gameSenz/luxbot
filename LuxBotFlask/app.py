@@ -28,6 +28,7 @@ import os
 # POST request in order to generate a checkout on Stripe through Discord Bot + User ID
 @app.route('/create-checkout', methods=['POST'])
 def create_checkout():
+    print("create checkout")
     # JSON to hold the user's Discord ID from Bot Frontend
     data = request.get_json(silent=True) or {}
 

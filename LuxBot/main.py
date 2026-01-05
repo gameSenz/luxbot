@@ -39,7 +39,7 @@ async def on_message(message):
 @bot.command()
 async def buytoken(ctx):
     await ctx.message.delete()
-
+    print("Buy Token")
     # Inform User through channel where command was placed to check PMs
     msg = await ctx.message.channel.send(f"{ctx.message.author.mention} check your DMs!")
     await msg.delete(delay=5)
