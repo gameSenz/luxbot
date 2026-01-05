@@ -4,6 +4,7 @@ from discord.ext import commands
 import logging
 from dotenv import load_dotenv
 import os
+from views.token_shop import TokenShopView
 
 FLASK_BASE_URL = "http://127.0.0.1:5001"
 load_dotenv()
@@ -12,7 +13,7 @@ token = os.getenv('DISCORD_TOKEN')
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 intents = discord.Intents.default()
 intents.message_content = True
-intents.members = True
+intents.members = True 
 
 bot = commands.Bot(command_prefix='/', intents=intents)
 
@@ -43,33 +44,39 @@ async def buytoken(ctx):
     msg = await ctx.message.channel.send(f"{ctx.message.author.mention} check your DMs!")
     await msg.delete(delay=5)
 
-    # FlaskAPI containing Stripe integrations is called
     try:
-        # sends Discord UserID to Flask API
-        response = requests.post(
-            f"{FLASK_BASE_URL}/create-checkout",
-            json={"discord_id": ctx.message.author.id},
-            timeout=10
+        await ctx.author.send(
+            "Pick a token pack to purchase:",
+            view=TokenShopView(flask_base_url=FLASK_BASE_URL)
         )
-    except requests.RequestException:
-        await ctx.author.send("Payment Service Unavailable")
-        return
-    if response.status_code != 200:
-        await ctx.author.send("Failed to generate payment link")
-        return
+    except discord.Forbidden:
+        await ctx.send(f"{ctx.author.mention} I can’t DM you—please enable DMs from this server.")
 
-    # Gets generated payment link, or error if unable to be generated
-    data = response.json()
-    payment_url = data.get('payment_url')
-
-    if not payment_url:
-        await ctx.author.send("Payment Link Missing")
-        return
-
-    #User is sent via PM
-    await ctx.author.send(
-        f"**Complete your payment here:** \n{payment_url}"
+# Command to check current token count: WIP waiting on NeatQ API clarification
+@bot.command()
+async def tokencheck(ctx):
+    await ctx.message.delete()
+    bot_payload = {
+        "channel_id": ctx.message.channel.id,
+        "hidden": False,
+        "user_id": int(ctx.message.author.id),
+        "all_time": False
+    }
+    headers = {
+        "Authorization": os.getenv("NEATQUEUE_KEY"),
+        "Content-Type": "application/json",
+    }
+    response = requests.post(
+        "https://api.neatqueue.com/api/v2/stats",
+        json=bot_payload,
+        headers=headers,
+        timeout=10,
     )
+    if response.status_code != 200:
+        print("Failed to call NeatQ", response.status_code, response.text)
+
+    await ctx.message.channel.send(response.text)
+
 
 
 bot.run(token, log_handler=handler, log_level=logging.DEBUG)

@@ -10,6 +10,16 @@ stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 stripe_webhook_key = os.getenv('STRIPE_WEBHOOK_SECRET')
 tenToken_id = 'price_1SiSKw1JlFuoKmRQmzTACToY'
 twentyToken_id = 'price_1SilIH1JlFuoKmRQTD9zxIX3'
+
+token_map = {
+    "ten_tokens": tenToken_id,
+    "twenty_tokens": twentyToken_id,
+}
+
+price_map = {
+    tenToken_id: '10',
+    twentyToken_id: '20',
+}
 app = Flask(__name__)
 
 import os
@@ -19,17 +29,30 @@ import os
 def create_checkout():
     # JSON to hold the user's Discord ID from Bot Frontend
     data = request.get_json(silent=True) or {}
-    discord_id = data['discord_id']
+
+    discord_id = data.get('discord_id')
     if not discord_id:
         return abort(400, description="Discord ID not provided")
 
+    product = data.get("product")
+    if not product:
+        return abort(400, description="Product not provided")
+
+    price_id = token_map.get(product)
+    if not price_id:
+        return abort(400, description="Invalid product")
+
     #Stripe Checkout Session Obj, https://docs.stripe.com/api/checkout/sessions/object
     session = stripe.checkout.Session.create(
-        line_items=[{"price": tenToken_id, "quantity": 1}],
+        line_items=[{"price": price_id, "quantity": 1}],
         mode='payment',
         success_url=url_for('payment_complete', _external=True),
         cancel_url = url_for('cancel', _external=True),
-        metadata={'discord_id': str(discord_id)},
+        metadata={
+            'discord_id': str(discord_id),
+            'product': product,
+            'price_id': str(tenToken_id),
+        },
     )
 
     return {"payment_url": session.url, "session_id": session.id}, 200
@@ -81,6 +104,8 @@ def stripe_webhook():
         discord_id = session.get("metadata", {}).get("discord_id")
         if not discord_id:
             return abort(400, description="Discord ID not provided")
+        # grabs price_id for interaction with dict
+        price_id = session.get("metadata", {}).get("price_id")
 
         # NeatQ API Integration to adjust user's points (aka Tokens)
         # https://api.neatqueue.com/docs#/Commands/add_stats_api_v2_add_stats_post
@@ -88,7 +113,7 @@ def stripe_webhook():
         bot_payload = {
             "channel_id": 1442266661737725974,
             "stat": 'points',
-            "value": 10,
+            "value": int(price_map[price_id]),
             "user_id": int(discord_id),
             "role_id": None
         }
