@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import os
 from views.token_shop import TokenShopView
 
-FLASK_BASE_URL = "https://luxbot-production-0bcb.up.railway.app"
+FLASK_BASE_URL = "https://luxbot-production-0bcb.up.railway.app:8080"
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
 
