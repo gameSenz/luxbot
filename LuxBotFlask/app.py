@@ -8,7 +8,7 @@ load_dotenv()
 
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 stripe_webhook_key = os.getenv('STRIPE_WEBHOOK_SECRET')
-port=int(os.getenv('PORT',5000))
+port=int(os.getenv('PORT',8080))
 tenToken_id = 'price_1SiSKw1JlFuoKmRQmzTACToY'
 twentyToken_id = 'price_1SilIH1JlFuoKmRQTD9zxIX3'
 
