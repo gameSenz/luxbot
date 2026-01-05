@@ -1,2 +1,6 @@
 discord.py
 python-dotenv
+requests
+stripe
+flask
+aiohttp
