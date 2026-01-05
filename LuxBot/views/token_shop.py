@@ -43,6 +43,7 @@ class TokenSelect(discord.ui.Select):
                     timeout=aiohttp.ClientTimeout(total=10),
                 ) as resp:
                     if resp.status != 200:
+                        print(await resp.json())
                         await interaction.response.send_message(
                             "Failed to generate payment link. Try again later.",
                             ephemeral=True
