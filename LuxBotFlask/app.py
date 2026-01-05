@@ -57,7 +57,7 @@ def create_checkout():
         metadata={
             'discord_id': str(discord_id),
             'product': product,
-            'price_id': str(tenToken_id),
+            'price_id': str(price_id),
         },
     )
 
