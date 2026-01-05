@@ -50,6 +50,7 @@ class TokenSelect(discord.ui.Select):
                         )
                         return
                     data = await resp.json()
+                    print(data)
         except Exception:
             await interaction.response.send_message(
                 "Payment Service Unavailable.",
