@@ -25,6 +25,10 @@ app = Flask(__name__)
 
 import os
 
+@app.route("/health", methods=["GET"])
+def health():
+    return {"ok": True}, 200
+
 # POST request in order to generate a checkout on Stripe through Discord Bot + User ID
 @app.route('/create-checkout', methods=['POST'])
 def create_checkout():
@@ -139,4 +143,4 @@ def stripe_webhook():
     return '', 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=os.getenv("PORT", default=8080))
+    app.run(host='0.0.0.0', port=int(os.getenv("PORT", default=8080)))
