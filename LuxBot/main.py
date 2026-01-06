@@ -1,5 +1,6 @@
 import discord
 import requests
+import json
 from discord.ext import commands
 import logging
 from dotenv import load_dotenv
@@ -59,21 +60,21 @@ async def buytoken(ctx):
 @bot.command()
 async def tokencheck(ctx):
     await ctx.message.delete()
-    bot_payload = {
-        "channel_id": ctx.message.channel.id,
-        "hidden": False,
-        "user_id": int(ctx.message.author.id),
-        "all_time": False
-    }
-    headers = {
-        "Authorization": os.getenv("NEATQUEUE_KEY"),
-        "Content-Type": "application/json",
-    }
-    response = requests.get(f"https://api.neatqueue.com/api/v1/playerstats/{ctx.message.guild.id}/{ctx.message.author.id}",timeout=5)
+
+    try:
+        response = requests.get(f"https://api.neatqueue.com/api/v1/playerstats/{ctx.message.guild.id}/{ctx.message.author.id}",timeout=5)
+    except requests.RequestException as e:
+        await ctx.send(f"NeatQ request failed: {e}")
+        return
+
     if response.status_code != 200:
         print("Failed to call NeatQ", response.status_code, response.text)
+        return
 
-    await ctx.message.channel.send(response.text)
+    data=response.json()
+    points = data.get('points')
+
+    await ctx.message.channel.send(f"{ctx.message.author.mention} you have {points} points", ephemeral=True)
 
 
 
