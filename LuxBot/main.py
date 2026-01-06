@@ -69,7 +69,7 @@ async def tokencheck(ctx):
         "Authorization": os.getenv("NEATQUEUE_KEY"),
         "Content-Type": "application/json",
     }
-    response = requests.get("https://api.neatqueue.com/api/v1/playerstats/{interaction.guild_id}/{player_id}",timeout=5)
+    response = requests.get(f"https://api.neatqueue.com/api/v1/playerstats/{ctx.message.guild.id}/{ctx.message.author.id}",timeout=5)
     if response.status_code != 200:
         print("Failed to call NeatQ", response.status_code, response.text)
 
