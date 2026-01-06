@@ -137,8 +137,6 @@ def stripe_webhook():
         subtotal = session.get("amount_subtotal")
         # unique checkout session id
         checkout_id = session.get("id")
-        # holds whether paid out via NeatQ
-        payout = False
 
         try:
             supabase.table("Order_History").insert({
@@ -146,7 +144,6 @@ def stripe_webhook():
                      "created_at": creation_date.isoformat(),
                      "product": product,
                      "checkout_id": checkout_id,
-                     "payout": payout,
                      "subtotal": subtotal,}).execute()
         # Checks for duplicate stripe webhooks
         except Exception as e:
