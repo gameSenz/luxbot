@@ -74,7 +74,8 @@ async def tokencheck(ctx):
     data=response.json()
     points = data.get('points')
 
-    await ctx.message.channel.send(f"{ctx.message.author.mention} you have {points} points", ephemeral=True)
+    await ctx.message.channel.send(f"{ctx.message.author.mention} you have {points} points")
+    await ctx.message.delete(delay=10)
 
 
 
