@@ -180,7 +180,8 @@ def stripe_webhook():
             print("Failed to call NeatQ, Contact an Admin to receive tokens", response.status_code, response.text)
         else:
             supabase.table("Order_History") \
-            .upsert({"checkout_id": checkout_id, "payout": True}) \
+            .update({"payout": True}) \
+            .eq("checkout_id", checkout_id) \
             .execute()
 
 
