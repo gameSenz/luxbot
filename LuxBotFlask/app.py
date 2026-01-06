@@ -1,10 +1,26 @@
 import os
+from datetime import timezone, datetime
+
+from supabase import create_client, Client
+from supabase.client import ClientOptions
 import requests
 import stripe
 from flask import Flask, render_template, redirect, url_for, request, abort
 from dotenv import load_dotenv
 
 load_dotenv()
+
+supabase_url: str = os.environ.get("SUPABASE_URL")
+supabase_key: str = os.environ.get("SUPABASE_KEY")
+supabase: Client = create_client(
+    supabase_url,
+    supabase_key,
+    options=ClientOptions(
+        postgrest_client_timeout=10,
+        storage_client_timeout=10,
+        schema="public",
+    )
+)
 
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 stripe_webhook_key = os.getenv('STRIPE_WEBHOOK_SECRET')
@@ -112,7 +128,30 @@ def stripe_webhook():
             return abort(400, description="Discord ID not provided")
         # grabs price_id for interaction with dict
         price_id = session.get("metadata", {}).get("price_id")
+        # product name for database purposes
+        product = session.get("metadata", {}).get("product")
+        # grabs unix timestamp from stripe, converts to UTC
+        creation_unix = session.get("created")
+        creation_date = datetime.fromtimestamp(creation_unix, tz=timezone.utc)
+        # subtotal for validation
+        subtotal = session.get("amount_subtotal")
+        # unique checkout session id
+        checkout_id = session.get("id")
+        # holds whether paid out via NeatQ
+        payout = False
 
+        try:
+            supabase.table("Order_History").insert({
+                     "discord_id": discord_id,
+                     "created_at": creation_date.isoformat(),
+                     "product": product,
+                     "checkout_id": checkout_id,
+                     "payout": payout,
+                     "subtotal": subtotal,}).execute()
+        # Checks for duplicate stripe webhooks
+        except Exception as e:
+            print("Duplicate webhook",checkout_id, e)
+            return "",200
         # NeatQ API Integration to adjust user's points (aka Tokens)
         # https://api.neatqueue.com/docs#/Commands/add_stats_api_v2_add_stats_post
         # Generating JSON to send to API
@@ -136,8 +175,13 @@ def stripe_webhook():
             timeout=10,
         )
 
+        # applies payout, or advises user if NeatQ is having issues
         if response.status_code != 200:
-            print("Failed to call NeatQ", response.status_code, response.text)
+            print("Failed to call NeatQ, Contact an Admin to receive tokens", response.status_code, response.text)
+        else:
+            supabase.table("Order_History") \
+            .upsert({"checkout_id": checkout_id, "payout": True}) \
+            .execute()
 
 
     return '', 200
