@@ -3,8 +3,6 @@ import aiohttp
 import asyncio
 import os
 
-from discord.types.interactions import Interaction
-
 PRODUCT_LABELS = {
     "ten_tokens": "10 Tokens",
     "twenty_tokens": "20 Tokens",
