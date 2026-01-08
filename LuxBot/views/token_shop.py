@@ -1,11 +1,66 @@
 import discord
 import aiohttp
+import asyncio
+import os
+
+from discord.types.interactions import Interaction
 
 PRODUCT_LABELS = {
     "ten_tokens": "10 Tokens",
     "twenty_tokens": "20 Tokens",
     # "hundred_tokens": "100 Tokens",
 }
+
+async def poll_confirmation(
+        message: discord.Message,
+        flask_base_url: str,
+        checkout_id: str,
+        product: str,
+):
+    secret_key = os.getenv("POLL_SECRET")
+    if not secret_key:
+        return
+
+    for _ in range(100):
+        await asyncio.sleep(3)
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{flask_base_url}/checkout-status/{checkout_id}",
+                    params={"secret_key": secret_key},
+                    timeout=aiohttp.ClientTimeout(total=10),
+                ) as resp:
+                    if resp.status != 200:
+                        continue
+                    status = await resp.json()
+        except Exception:
+            continue
+
+        if status.get("found") and status.get("payout") is True:
+            receipt_url = status.get("receipt_url")
+
+            receipt_msg = (f"**Payment Confirmed**\n"
+                           f"**{product}** has been delivered.")
+            if receipt_url:
+                receipt_msg += f"\n Receipt: {receipt_url}"
+
+            try:
+                await message.edit(content=receipt_msg, view=None)
+            except Exception:
+                pass
+
+            try:
+                async with aiohttp.ClientSession() as session:
+                    await session.post(
+                        f"{flask_base_url}/notified",
+                        json={"secret_key": secret_key, "checkout_id": checkout_id},
+                        timeout=aiohttp.ClientTimeout(total=8),
+                    )
+            except Exception:
+                pass
+
+            return
 
 # Drop down menu for user
 class TokenSelect(discord.ui.Select):
@@ -65,6 +120,8 @@ class TokenSelect(discord.ui.Select):
             await interaction.response.send_message("Payment Link Missing.", ephemeral=True)
             return
 
+        checkout_id = data.get("session_id")
+
         label = PRODUCT_LABELS.get(product, product)
 
         # Clean UX: replace menu message with link and remove dropdown
@@ -72,6 +129,15 @@ class TokenSelect(discord.ui.Select):
             content=f"**{label}** checkout link:\n{payment_url}",
             view=None
         )
+        if checkout_id and interaction.message:
+            asyncio.create_task(
+                poll_confirmation(
+                    message=interaction.message,
+                    flask_base_url=self.flask_base_url,
+                    checkout_id=checkout_id,
+                    product=label,
+                )
+            )
 
 
 class TokenShopView(discord.ui.View):

@@ -137,6 +137,17 @@ def stripe_webhook():
         subtotal = session.get("amount_subtotal")
         # unique checkout session id
         checkout_id = session.get("id")
+        # receipt url
+        receipt_url = None
+
+        # tries to find receipt url
+        try:
+            payment_intent = stripe.PaymentIntent.retrieve(session.get("payment_intent"))
+            charges = payment_intent.get("charges", {}).get("data", [])
+            if charges:
+                receipt_url = charges[0]["receipt_url"]
+        except Exception as e:
+            print("Couldn't fetch receipt url", e)
 
         try:
             supabase.table("Order_History").insert({
@@ -144,7 +155,10 @@ def stripe_webhook():
                      "created_at": creation_date.isoformat(),
                      "product": product,
                      "checkout_id": checkout_id,
-                     "subtotal": subtotal,}).execute()
+                     "subtotal": subtotal,
+                     "receipt_url": receipt_url,
+                     "notified": False,
+            }).execute()
         # Checks for duplicate stripe webhooks
         except Exception as e:
             print("Duplicate webhook",checkout_id, e)
@@ -182,6 +196,47 @@ def stripe_webhook():
             .execute()
 
 
+    return '', 200
+
+@app.route("/checkout-status/<checkout_id>", methods=["GET"])
+def checkout_status(checkout_id):
+    secret_key = request.args.get("secret_key")
+    if not secret_key or secret_key != os.getenv("POLL_SECRET"):
+        return abort(401, description="Secret key not provided")
+
+    res = (
+        supabase.table("Order_History")
+        .select("checkout_id,payout,product,receipt_url")
+        .eq("checkout_id", checkout_id)
+        .limit(1)
+        .execute()
+    )
+    rows = getattr(res, "data", None) or []
+    if not rows:
+        return {"found": False}, 200
+
+    row = rows[0]
+    return {
+        "found": True,
+        "payout": bool(row.get("payout")),
+        "product": row.get("product"),
+        "receipt_url": row.get("receipt_url"),
+    }
+
+@app.route("/notified", methods=["POST"])
+def notified():
+    data = request.get_json(silent=True) or {}
+    secret_key = data.get("secret_key")
+    if not secret_key or secret_key != os.getenv("POLL_SECRET"):
+        return abort(401, description="Secret key not provided")
+
+    checkout_id = data.get("checkout_id")
+    if not checkout_id:
+        return abort(400, description="Checkout id not provided")
+
+    (supabase.table("Order_History").update({"notified": True})
+     .eq("checkout_id", checkout_id)
+     .execute())
     return '', 200
 
 if __name__ == '__main__':
