@@ -142,10 +142,13 @@ def stripe_webhook():
 
         # tries to find receipt url
         try:
-            payment_intent = stripe.PaymentIntent.retrieve(session.get("payment_intent"))
-            charges = payment_intent.get("charges", {}).get("data", [])
-            if charges:
-                receipt_url = charges[0]["receipt_url"]
+            pi_id = session.get("payment_intent")
+            if pi_id:
+                payment_intent = stripe.PaymentIntent.retrieve(pi_id)
+                latest_charge_id = payment_intent.get("latest_charge")
+                if latest_charge_id:
+                    charge = stripe.Charge.retrieve(latest_charge_id)
+                    receipt_url = charge.get("receipt_url")
         except Exception as e:
             print("Couldn't fetch receipt url", e)
 
