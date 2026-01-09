@@ -24,7 +24,6 @@ async def poll_confirmation(
     for _ in range(100):
         await asyncio.sleep(3)
 
-        #
         try:
             async with aiohttp.ClientSession() as session:
                 # get request to flask API
@@ -47,7 +46,7 @@ async def poll_confirmation(
 
             # message text for user
             receipt_msg = (f"**Payment Confirmed**\n"
-                           f"**{product}** has been delivered.")
+                           f"**{product}** have been credited to your account.")
             if receipt_url:
                 receipt_msg += f"\nReceipt: {receipt_url}"
 

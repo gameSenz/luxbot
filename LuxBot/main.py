@@ -32,16 +32,6 @@ async def on_ready():
     except Exception as e:
         print("Command sync failed:", e)
 
-# Test for language filtering
-@bot.event
-async def on_message(message):
-    if message.author == bot.user:
-        return
-    if "shit" in message.content.lower():
-        await message.delete()
-        await message.channel.send(f"{message.author.mention} - dont use that word!")
-
-    await bot.process_commands(message)
 
 # User command to initiate checkout sequence through Stripe
 @bot.tree.command(name="buytoken", description="Buy token packs (via DM)")
@@ -81,7 +71,7 @@ async def tokencheck(interaction: discord.Interaction):
     data=response.json()
     points = data.get('points')
 
-    await interaction.followup.send(f"You have **{points}** points")
+    await interaction.followup.send(f"You have **{points}** tokens/points")
 
 
 
