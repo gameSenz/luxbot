@@ -64,8 +64,8 @@ def create_checkout():
     session = stripe.checkout.Session.create(
         line_items=[{"price": price_id, "quantity": 1}],
         mode='payment',
-        success_url="https://luxbot-production-0bcb.up.railway.app/payment-complete",
-        cancel_url="https://luxbot-production-0bcb.up.railway.app/cancel",
+        success_url="https://api.luxurygaming.com/payment-complete",
+        cancel_url="https://api.luxurygaming.com/cancel",
         metadata={
             'discord_id': str(discord_id),
             'product': product,
