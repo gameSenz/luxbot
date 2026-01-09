@@ -40,8 +40,11 @@ token_map = {
 }
 
 price_map = {
+    fiveToken_id: '5',
     tenToken_id: '10',
     twentyToken_id: '20',
+    fiftyToken_id: '50',
+    hundredToken_id: '100',
 }
 app = Flask(__name__)
 
