@@ -19,14 +19,18 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-bot = commands.Bot(command_prefix='/', intents=intents)
+bot = commands.Bot(command_prefix='!', intents=intents)
 
 @bot.event
 async def on_ready():
-    print('Logged in as')
-    print(bot.user.name)
-    print(bot.user.id)
-    print('------')
+    print(f"Logged in as {bot.user} ({bot.user.id})")
+
+    # Sync slash commands (global)
+    try:
+        synced = await bot.tree.sync()
+        print(f"Synced {len(synced)} command(s).")
+    except Exception as e:
+        print("Command sync failed:", e)
 
 # Test for language filtering
 @bot.event
@@ -40,42 +44,44 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # User command to initiate checkout sequence through Stripe
-@bot.command()
-async def buytoken(ctx):
-    await ctx.message.delete()
-    print("Buy Token")
-    # Inform User through channel where command was placed to check PMs
-    msg = await ctx.message.channel.send(f"{ctx.message.author.mention} check your DMs!")
-    await msg.delete(delay=5)
+@bot.tree.command(name="buytoken", description="Buy token packs (via DM)")
+async def buytoken(interaction: discord.Interaction):
 
+    # Inform User through channel where command was placed to check PMs
+    await interaction.response.send_message("Check your DMs!", ephemeral=True)
+
+    # Send checkout menu via DM
     try:
-        await ctx.author.send(
-            "Pick a token pack to purchase:",
-            view=TokenShopView(flask_base_url=FLASK_BASE_URL)
-        )
+        view = TokenShopView(flask_base_url=FLASK_BASE_URL)
+        dm_msg = await interaction.user.send("Select a token pack to purchase:", view=view)
+        view.message = dm_msg
+
     except discord.Forbidden:
-        await ctx.send(f"{ctx.author.mention} I can’t DM you—please enable DMs from this server.")
+        await interaction.followup.send("I can’t DM you, please enable DMs from this server.", ephemeral=True)
 
 # Command to check current token count: WIP waiting on NeatQ API clarification
-@bot.command()
-async def tokencheck(ctx):
-    await ctx.message.delete()
+@bot.tree.command(name="tokencheck", description="Check your current token/point balance.")
+async def tokencheck(interaction: discord.Interaction):
+
+    await interaction.response.defer(ephemeral=True)
 
     try:
-        response = requests.get(f"https://api.neatqueue.com/api/v1/playerstats/{ctx.message.guild.id}/{ctx.message.author.id}",timeout=5)
+        response = requests.get(f"https://api.neatqueue.com/api/v1/playerstats/{interaction.guild_id}/{interaction.user.id}",timeout=5)
     except requests.RequestException as e:
-        await ctx.send(f"NeatQ request failed: {e}")
+        await interaction.followup.send(f"NeatQ request failed: {e}", ephemeral=True)
         return
 
     if response.status_code != 200:
-        print("Failed to call NeatQ", response.status_code, response.text)
+        await interaction.followup.send(
+            f"Failed to fetch tokens (status {response.status_code}). Try again later.",
+            ephemeral=True,
+        )
         return
 
     data=response.json()
     points = data.get('points')
 
-    await ctx.message.channel.send(f"{ctx.message.author.mention} you have {points} points")
-    await ctx.message.delete(delay=10)
+    await interaction.followup.send(f"You have **{points}** points")
 
 
 

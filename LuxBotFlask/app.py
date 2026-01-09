@@ -201,23 +201,27 @@ def stripe_webhook():
 
     return '', 200
 
+# @param checkout_id = session id of stripe checkout
 @app.route("/checkout-status/<checkout_id>", methods=["GET"])
 def checkout_status(checkout_id):
     secret_key = request.args.get("secret_key")
     if not secret_key or secret_key != os.getenv("POLL_SECRET"):
         return abort(401, description="Secret key not provided")
 
-    res = (
+    # select data from DB involving checkout id
+    response = (
         supabase.table("Order_History")
         .select("checkout_id,payout,product,receipt_url")
         .eq("checkout_id", checkout_id)
         .limit(1)
         .execute()
     )
-    rows = getattr(res, "data", None) or []
+    # validates that a row was returned
+    rows = getattr(response, "data", None) or []
     if not rows:
         return {"found": False}, 200
 
+    # returns dict with relevant info to bot
     row = rows[0]
     return {
         "found": True,
@@ -226,6 +230,7 @@ def checkout_status(checkout_id):
         "receipt_url": row.get("receipt_url"),
     }
 
+# marks whether user was sent a receipt, and prevents spam by checking DB
 @app.route("/notified", methods=["POST"])
 def notified():
     data = request.get_json(silent=True) or {}
@@ -237,6 +242,7 @@ def notified():
     if not checkout_id:
         return abort(400, description="Checkout id not provided")
 
+    # updates DB
     (supabase.table("Order_History").update({"notified": True})
      .eq("checkout_id", checkout_id)
      .execute())

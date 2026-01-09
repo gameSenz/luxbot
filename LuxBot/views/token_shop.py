@@ -9,45 +9,55 @@ PRODUCT_LABELS = {
     # "hundred_tokens": "100 Tokens",
 }
 
+# polling function to send receipt to user
 async def poll_confirmation(
         message: discord.Message,
         flask_base_url: str,
         checkout_id: str,
         product: str,
 ):
+    # custom key
     secret_key = os.getenv("POLL_SECRET")
     if not secret_key:
         return
-
+    # running every 3 seconds for 5 mins
     for _ in range(100):
         await asyncio.sleep(3)
 
+        #
         try:
             async with aiohttp.ClientSession() as session:
+                # get request to flask API
                 async with session.get(
                     f"{flask_base_url}/checkout-status/{checkout_id}",
                     params={"secret_key": secret_key},
                     timeout=aiohttp.ClientTimeout(total=10),
-                ) as resp:
-                    if resp.status != 200:
+                ) as response:
+                    if response.status != 200:
                         continue
-                    status = await resp.json()
+                    # reads response json get request
+                    status = await response.json()
         except Exception:
             continue
 
+        # Checking if response from Flask has been paid out and that the session exists
         if status.get("found") and status.get("payout") is True:
+            # saves url of stripe receipt
             receipt_url = status.get("receipt_url")
 
+            # message text for user
             receipt_msg = (f"**Payment Confirmed**\n"
                            f"**{product}** has been delivered.")
             if receipt_url:
-                receipt_msg += f"\n Receipt: {receipt_url}"
+                receipt_msg += f"\nReceipt: {receipt_url}"
 
+            # edits message (containing checkout link) with receipt msg
             try:
                 await message.edit(content=receipt_msg, view=None)
             except Exception:
                 pass
 
+            # POST request to update DB with info that receipt was sent out to eliminate spam to user
             try:
                 async with aiohttp.ClientSession() as session:
                     await session.post(
@@ -127,6 +137,8 @@ class TokenSelect(discord.ui.Select):
             content=f"**{label}** checkout link:\n{payment_url}",
             view=None
         )
+
+        # runs polling function to replace payment link with receipt on completion
         if checkout_id and interaction.message:
             asyncio.create_task(
                 poll_confirmation(
