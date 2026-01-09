@@ -77,11 +77,11 @@ class TokenSelect(discord.ui.Select):
         self.flask_base_url = flask_base_url
 
         options = [
-            discord.SelectOption(label="5 Tokens", value="five_tokens", description="You will receive eligible for use in tournaments. (Non refundable)"),
-            discord.SelectOption(label="10 Tokens", value="ten_tokens", description="You will receive eligible for use in tournaments. (Non refundable)"),
-            discord.SelectOption(label="20 Tokens", value="twenty_tokens", description="You will receive eligible for use in tournaments. (Non refundable)"),
-            discord.SelectOption(label="50 Tokens", value="fifty_tokens", description="You will receive eligible for use in tournaments. (Non refundable)"),
-            discord.SelectOption(label="100 Tokens", value="hundred_tokens", description="You will receive eligible for use in tournaments. (Non refundable)"),
+            discord.SelectOption(label="5 Tokens | $7.50", value="five_tokens", description="You will receive tokens eligible for use in tournaments. (Non refundable)"),
+            discord.SelectOption(label="10 Tokens | $12.50", value="ten_tokens", description="You will receive tokens eligible for use in tournaments. (Non refundable)"),
+            discord.SelectOption(label="20 Tokens | $22.50", value="twenty_tokens", description="You will receive tokens eligible for use in tournaments. (Non refundable)"),
+            discord.SelectOption(label="50 Tokens | $52.50", value="fifty_tokens", description="You will receive tokens eligible for use in tournaments. (Non refundable)"),
+            discord.SelectOption(label="100 Tokens | $102.50", value="hundred_tokens", description="You will receive tokens eligible for use in tournaments. (Non refundable)"),
         ]
         super().__init__(
             placeholder="Choose a token pack...",

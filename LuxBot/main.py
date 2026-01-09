@@ -56,14 +56,15 @@ async def tokencheck(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
 
     try:
-        response = requests.get(f"https://api.neatqueue.com/api/v1/playerstats/{interaction.guild_id}/{interaction.user.id}",timeout=5)
+        # On NEATQ TEST UPDATE ON LIVE
+        response = requests.get(f"https://api.neatqueue.com/api/v1/playerstats/1442266660823240766/{interaction.user.id}",timeout=5)
     except requests.RequestException as e:
         await interaction.followup.send(f"NeatQ request failed: {e}", ephemeral=True)
         return
 
     if response.status_code != 200:
         await interaction.followup.send(
-            f"Failed to fetch tokens (status {response.status_code}). Try again later.",
+            f"If you are a **NEW** user your data will be updated on purchase\nElse, failed to fetch tokens either (status {response.status_code}). Try again later.",
             ephemeral=True,
         )
         return
