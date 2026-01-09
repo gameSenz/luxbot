@@ -163,7 +163,7 @@ class TokenShopView(discord.ui.View):
         # Edit the original message to show it's expired
         if self.message:
             try:
-                if "Payment Confirmed" in self.message.content:
+                if not "Payment Confirmed" in self.message.content:
                     await self.message.edit(
                         content="This menu has expired. Run `/buytoken` again.",
                         view=self
