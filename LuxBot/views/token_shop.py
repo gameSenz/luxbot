@@ -4,9 +4,11 @@ import asyncio
 import os
 
 PRODUCT_LABELS = {
+    "five_tokens": "5 Tokens",
     "ten_tokens": "10 Tokens",
     "twenty_tokens": "20 Tokens",
-    # "hundred_tokens": "100 Tokens",
+    "fifty_tokens": "50 Tokens",
+    "hundred_tokens": "100 Tokens",
 }
 
 # polling function to send receipt to user
@@ -75,9 +77,11 @@ class TokenSelect(discord.ui.Select):
         self.flask_base_url = flask_base_url
 
         options = [
-            discord.SelectOption(label="10 Tokens", value="ten_tokens", description="Buy 10 tokens"),
-            discord.SelectOption(label="20 Tokens", value="twenty_tokens", description="Buy 50 tokens"),
-            # discord.SelectOption(label="100 Tokens", value="hundred_tokens", description="Buy 100 tokens"),
+            discord.SelectOption(label="5 Tokens", value="five_tokens", description="You will receive eligible for use in tournaments. (Non refundable)"),
+            discord.SelectOption(label="10 Tokens", value="ten_tokens", description="You will receive eligible for use in tournaments. (Non refundable)"),
+            discord.SelectOption(label="20 Tokens", value="twenty_tokens", description="You will receive eligible for use in tournaments. (Non refundable)"),
+            discord.SelectOption(label="50 Tokens", value="fifty_tokens", description="You will receive eligible for use in tournaments. (Non refundable)"),
+            discord.SelectOption(label="100 Tokens", value="hundred_tokens", description="You will receive eligible for use in tournaments. (Non refundable)"),
         ]
         super().__init__(
             placeholder="Choose a token pack...",
