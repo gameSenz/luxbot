@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import os
 from views.token_shop import TokenShopView
 
-FLASK_BASE_URL = "https://luxbot-production-0bcb.up.railway.app" # must be set in Railway
+FLASK_BASE_URL = "https://api.luxurygaming.com" # must be set in Railway
 
 intents = discord.Intents.default()
 intents.members = True
