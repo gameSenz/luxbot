@@ -147,6 +147,8 @@ def stripe_webhook():
         checkout_id = session.get("id")
         # receipt url
         receipt_url = None
+        # user email
+        email = session.get("customer_details",{}.get("email"))
 
         # tries to find receipt url
         try:
@@ -168,6 +170,7 @@ def stripe_webhook():
                      "checkout_id": checkout_id,
                      "subtotal": subtotal,
                      "receipt_url": receipt_url,
+                     "email": email,
                      "notified": False,
             }).execute()
         # Checks for duplicate stripe webhooks
