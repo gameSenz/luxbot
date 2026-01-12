@@ -136,6 +136,9 @@ async def create_tournament(interaction: discord.Interaction,
         "channel_id": interaction.channel_id,           # int
         "timer": 36000                                  # int
     }
+    start_payload = {
+        "channel_id": interaction.channel_id
+    }
     # Authenticating API Key + Declaring JSON to be sent
     headers = {
         "Authorization": os.getenv("NEATQUEUE_KEY"),
@@ -153,6 +156,7 @@ async def create_tournament(interaction: discord.Interaction,
             await post_json(session, "https://api.neatqueue.com/api/v2/lobbychannel/timer", timer_payload)
             await post_json(session, "https://api.neatqueue.com/api/v2/tempchannels/name", channels_payload)
             await post_json(session, "https://api.neatqueue.com/api/v2/voicechannels/teamchannels", voice_payload)
+            await post_json(session, "https://api.neatqueue.com/api/v2/tournament/start", start_payload)
         await interaction.followup.send(
             f"You have successfully created **{name}** tournament for **{player_count}** players.", ephemeral=True
         )
