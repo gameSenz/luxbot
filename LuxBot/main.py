@@ -1,6 +1,8 @@
 import discord
 import requests
 import json
+
+from discord import app_commands
 from discord.ext import commands
 import logging
 from dotenv import load_dotenv
@@ -89,6 +91,72 @@ async def tokencheck(interaction: discord.Interaction):
 
     await interaction.followup.send(f"You have **{points}** tokens/points")
 
+@bot.tree.command(name="create_tournament", description="ADMIN ONLY: Create a new tournament")
+@app_commands.describe(
+    name="Tournament Name",
+    desc="Create a new tournament",
+    player_count="Amt of players"
+)
+async def create_tournament(interaction: discord.Interaction,
+                            name: str,
+                            desc: str,
+                            player_count: int,
+                            ):
 
+    tournament_payload = {
+        "channel_id": interaction.channel_id,
+        "maximum_participants": player_count,
+        "auto_create_new_tournament": False,
+        "team_size": 0,
+        "name": name,
+        "description": desc,
+        "details": desc,
+        "forfeit_time_sec": 36000,
+    }
+    voice_payload = {
+        "channel_id": interaction.channel_id,
+        "toggle": False,
+    }
+    channels_payload = {
+        "channel_id": interaction.channel_id,
+        "name_format": "matchslip-$"
+    }
+    timer_payload = {
+        "channel_id": interaction.channel_id,
+        "timer": 36000
+    }
+    # Authenticating API Key + Declaring JSON to be sent
+    headers = {
+        "Authorization": os.getenv("NEATQUEUE_KEY"),
+        "Content-Type": "application/json",
+    }
+    # send a POST req to NeatQ to process point change
+    try:
+        requests.post(
+            "https://api.neatqueue.com/api/v2/tournament/create",
+            json=tournament_payload,
+            headers=headers,
+            timeout=10,
+        )
+        requests.post(
+            "https://api.neatqueue.com/api/v2/lobbychannel/timer",
+            json=timer_payload,
+            headers=headers,
+            timeout=10,
+        )
+        requests.post(
+            "https://api.neatqueue.com/api/v2/tempchannels/name",
+            json=channels_payload,
+            headers=headers,
+            timeout=10,
+        )
+        requests.post(
+            "https://api.neatqueue.com/api/v2/voicechannels/teamchannels",
+            json=voice_payload,
+            headers=headers,
+            timeout=10,
+        )
+    except Exception as e:
+        await interaction.followup.send(f"Command wrong or NeatQueue server error: {e}", ephemeral=True)
 
 bot.run(token, log_handler=handler, log_level=logging.DEBUG)
