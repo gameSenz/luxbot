@@ -15,7 +15,7 @@ intents.members = True
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
 
-FLASK_BASE_URL = os.getenv("FLASK_URL")
+FLASK_BASE_URL = "https://api.luxurygaming.com"
 
 supabase_url: str = os.environ.get("SUPABASE_URL")
 supabase_key: str = os.environ.get("SUPABASE_KEY")
