@@ -58,7 +58,7 @@ async def buytoken(interaction: discord.Interaction):
 
     # Send checkout menu via DM
     try:
-        view = TokenShopView(flask_base_url=FLASK_BASE_URL)
+        view = TokenShopView(flask_base_url=str(FLASK_BASE_URL))
         dm_msg = await interaction.user.send("Select a token pack to purchase:", view=view)
         view.message = dm_msg
 
