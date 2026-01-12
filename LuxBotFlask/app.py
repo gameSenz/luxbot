@@ -1,4 +1,5 @@
 import os
+import time
 from datetime import timezone, datetime
 
 from supabase import create_client, Client
@@ -80,6 +81,8 @@ def create_checkout():
             'product': product,
             'price_id': str(price_id),
         },
+        expires_at=int(time.time()) + 1800
+
     )
 
     return {"payment_url": session.url, "session_id": session.id}, 200

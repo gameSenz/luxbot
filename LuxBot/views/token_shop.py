@@ -22,9 +22,9 @@ async def poll_confirmation(
     secret_key = os.getenv("POLL_SECRET")
     if not secret_key:
         return
-    # running every 3 seconds for 5 mins
-    for _ in range(100):
-        await asyncio.sleep(3)
+    # running every 6 seconds for 30 mins
+    for _ in range(300):
+        await asyncio.sleep(6)
 
         try:
             async with aiohttp.ClientSession() as session:
