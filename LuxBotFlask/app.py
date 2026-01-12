@@ -148,7 +148,8 @@ def stripe_webhook():
         # receipt url
         receipt_url = None
         # user email
-        email = session.get("customer_details",{}.get("email"))
+        customer_details = session.get("customer_details") or {}
+        email = customer_details.get("email")
 
         # tries to find receipt url
         try:
