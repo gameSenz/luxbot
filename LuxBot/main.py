@@ -91,6 +91,7 @@ async def tokencheck(interaction: discord.Interaction):
 
     await interaction.followup.send(f"You have **{points}** tokens/points")
 
+
 @bot.tree.command(name="create_tournament", description="ADMIN ONLY: Create a new tournament")
 @app_commands.describe(
     name="Tournament Name",
