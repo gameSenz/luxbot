@@ -103,6 +103,7 @@ async def create_tournament(interaction: discord.Interaction,
                             desc: str,
                             player_count: int,
                             ):
+    await interaction.response.defer(ephemeral=True)
 
     tournament_payload = {
         "channel_id": interaction.channel_id,
