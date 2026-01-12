@@ -109,12 +109,13 @@ async def create_tournament(interaction: discord.Interaction,
     tournament_payload = {
         "channel_id": interaction.channel_id,
         "maximum_participants": player_count,
-        "auto_create_new_tournament": False,
+        "tournament_type": "single_elimination",
+        "auto_create_new_tournament": 0,
         "team_size": 0,
         "name": name,
         "description": desc,
         "details": desc,
-        "forfeit_time_sec": 36000,
+        "forfeit_timer_sec": 36000,
     }
     voice_payload = {
         "channel_id": interaction.channel_id,
