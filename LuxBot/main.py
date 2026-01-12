@@ -107,40 +107,34 @@ async def create_tournament(interaction: discord.Interaction,
     await interaction.response.defer(ephemeral=True)
 
     tournament_payload = {
-        "channel_id": interaction.channel_id,          # integer (required)
-        "maximum_participants": player_count,           # integer (required)
-
-        "tournament_type": "single_elimination",        # REQUIRED (string)
-
+        "channel_id": interaction.channel_id,          # int
+        "maximum_participants": player_count,           # int
+        "tournament_type": "single_elimination",        # string
         "auto_start_on_fill": False,                    # boolean
         "auto_create_matches": True,                    # boolean
-        "auto_create_new_tournament": 0,                # integer (NOT boolean)
-
-        "team_size": None,                              # integer | null
+        "auto_create_new_tournament": 0,                # int
+        "team_size": None,                              # int | null
         "name": name,                                   # string | null
-        "description": desc,                            # string (required)
+        "description": desc,                            # string
         "details": desc,                                # string | null
-
-        "forfeit_timer_sec": 36000,                     # integer | null
+        "forfeit_timer_sec": 36000,                     # int | null
         "hold_third_place_match": False,                # boolean
-
         "url": None,                                    # string | null
         "subdomain": None,                              # string | null
-
-        "entry_price": None,                            # integer | null
-        "payout_fee": None                              # integer | null
+        "entry_price": None,                            # int | null
+        "payout_fee": None                              # int | null
     }
     voice_payload = {
-        "channel_id": interaction.channel_id,
-        "toggle": "false",
+        "channel_id": interaction.channel_id,           # int
+        "toggle": "Disabled",                           # string | Enabled or Disables ???
     }
     channels_payload = {
-        "channel_id": interaction.channel_id,
-        "name_format": "matchslip-$"
+        "channel_id": interaction.channel_id,           # int
+        "name_format": "matchslip-$"                    # string
     }
     timer_payload = {
-        "channel_id": interaction.channel_id,
-        "timer": 36000
+        "channel_id": interaction.channel_id,           # int
+        "timer": 36000                                  # int
     }
     # Authenticating API Key + Declaring JSON to be sent
     headers = {
