@@ -1,3 +1,4 @@
+import aiohttp
 import discord
 import requests
 import json
@@ -132,32 +133,22 @@ async def create_tournament(interaction: discord.Interaction,
         "Authorization": os.getenv("NEATQUEUE_KEY"),
         "Content-Type": "application/json",
     }
-    # send a POST req to NeatQ to process point change
+    async def post_json(session: aiohttp.ClientSession, url: str, payload: dict):
+        async with session.post(url, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as response:
+            text = await response.text()
+            if response.status >= 400:
+                raise RuntimeError(f"{url} failed ({response.status}): {text}")
+            return text
     try:
-        requests.post(
-            "https://api.neatqueue.com/api/v2/tournament/create",
-            json=tournament_payload,
-            headers=headers,
-            timeout=10,
+        async with aiohttp.ClientSession() as session:
+            await post_json(session, "https://api.neatqueue.com/api/v2/tournament/create", tournament_payload)
+            await post_json(session, "https://api.neatqueue.com/api/v2/lobbychannel/timer", timer_payload)
+            await post_json(session, "https://api.neatqueue.com/api/v2/tempchannels/name", channels_payload)
+            await post_json(session, "https://api.neatqueue.com/api/v2/voicechannels/teamchannels", voice_payload)
+        await interaction.followup.send(
+            f"You have successfully created **{name}** tournament for **{player_count}** players.", ephemeral=True
         )
-        requests.post(
-            "https://api.neatqueue.com/api/v2/lobbychannel/timer",
-            json=timer_payload,
-            headers=headers,
-            timeout=10,
-        )
-        requests.post(
-            "https://api.neatqueue.com/api/v2/tempchannels/name",
-            json=channels_payload,
-            headers=headers,
-            timeout=10,
-        )
-        requests.post(
-            "https://api.neatqueue.com/api/v2/voicechannels/teamchannels",
-            json=voice_payload,
-            headers=headers,
-            timeout=10,
-        )
+
     except Exception as e:
         await interaction.followup.send(f"Command wrong or NeatQueue server error: {e}", ephemeral=True)
 
