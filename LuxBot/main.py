@@ -5,14 +5,29 @@ from discord.ext import commands
 import logging
 from dotenv import load_dotenv
 import os
+from supabase import create_client, Client
+from supabase.client import ClientOptions
 from views.token_shop import TokenShopView
 
-FLASK_BASE_URL = "https://api.luxurygaming.com" # must be set in Railway
 
 intents = discord.Intents.default()
 intents.members = True
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
+
+FLASK_BASE_URL = os.getenv("FLASK_URL")
+
+supabase_url: str = os.environ.get("SUPABASE_URL")
+supabase_key: str = os.environ.get("SUPABASE_KEY")
+supabase: Client = create_client(
+    supabase_url,
+    supabase_key,
+    options=ClientOptions(
+        postgrest_client_timeout=10,
+        storage_client_timeout=10,
+        schema="public",
+    )
+)
 
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 intents = discord.Intents.default()
