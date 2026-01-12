@@ -126,7 +126,7 @@ async def create_tournament(interaction: discord.Interaction,
     }
     voice_payload = {
         "channel_id": interaction.channel_id,           # int
-        "toggle": "Disabled",                           # string | Enabled or Disables ???
+        "toggle": "Disabled".strip(),                           # string | Enabled or Disabled ???
     }
     channels_payload = {
         "channel_id": interaction.channel_id,           # int
