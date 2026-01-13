@@ -21,10 +21,10 @@ token = os.getenv('DISCORD_TOKEN')
 FLASK_BASE_URL = str(os.getenv("FLASK_URL"))
 
 PACK_TYPES = {
-    "POKE": "POKEMON",
-    "YUGI": "YUGIOH",
-    "RIFT": "RIFTBOUND",
-    "LORC": "LORCANA",
+    "POKEMON": "Pokemon",
+    "YUGIOH": "Yu-Gi-Oh",
+    "RIFTBOUND": "Riftbound",
+    "LORCANA": "Lorcana",
 }
 
 supabase_url: str = os.environ.get("SUPABASE_URL")
@@ -94,28 +94,29 @@ async def award_packs(
         # Record the award in Supabase
         # Note: Assuming 'Pack_Awards' table exists or similar to 'Order_History'
         response = supabase.table("pack_ledger").insert({
-            "discord_id": str(user.id),
+            "discord_id": int(user.id),
             "pack_type": pack_type.value,
             "change": amount,
             "notes": notes,
-            "created_by": str(interaction.user.id)
+            "created_by": str(interaction.user.name)
         }).execute()
         ledger_id = response.data[0]["id"]
 
     except Exception as e:
         await interaction.followup.send(f"Failed to award packs: (DB Error)", ephemeral=True)
+        return
 
     await interaction.followup.send(
-        f"Successfully awarded **{amount}x {pack_type.name}** packs to **{user.display_name}**.\nNotes: {notes}",
+        f"Successfully awarded **{amount}x {PACK_TYPES[pack_type.value]}** packs to **{user.display_name}**.\nNotes: {notes}",
         ephemeral=True
     )
 
     try:
-        await user.send(f"You have been awarded **{amount} x {pack_type.name}** participation packs.\nNotes: {notes}\nReceipt ID: **{ledger_id}**")
+        await user.send(f"You have been awarded **{amount}x {PACK_TYPES[pack_type.value]}** participation packs.\nNotes: {notes}\nReceipt ID: **{ledger_id}**")
     except discord.Forbidden:
         pass
 
-@app_commands.command(name="check_packs", description="Show your participation pack balances")
+@bot.tree.command(name="check_packs", description="Show your participation pack balances")
 @app_commands.describe(user="Optional: view someone else's packs (admin only)")
 async def check_packs(interaction: discord.Interaction, user: discord.User | None = None):
     # Default to self
@@ -151,11 +152,12 @@ async def check_packs(interaction: discord.Interaction, user: discord.User | Non
             balances[pack_type] += int(row.get("change") or 0)
 
     # Build display
-    lines = [f"**{pack_type.title()}**: `{balances[pack_type]}`" for pack_type in PACK_TYPES]
+    lines = [f"**{PACK_TYPES[pack_type]}**: `{balances[pack_type]}`" for pack_type in PACK_TYPES]
 
     embed = discord.Embed(
         title=f"{target.display_name}'s Packs",
         description="\n".join(lines),
+        color=discord.Color.blue()
     )
     embed.set_thumbnail(url=target.display_avatar.url)
 
@@ -163,7 +165,7 @@ async def check_packs(interaction: discord.Interaction, user: discord.User | Non
 
 
 @bot.tree.command(name="fulfill_packs", description="ADMIN: Fulfill shipment of a user's packs")
-async def claim_packs(interaction: discord.Interaction,
+async def fulfill_packs(interaction: discord.Interaction,
                       user: discord.User):
 
     if not interaction.user.guild_permissions.administrator:
@@ -201,13 +203,13 @@ async def claim_packs(interaction: discord.Interaction,
         if balance > 0:
             try:
                 supabase.table("pack_ledger").insert({
-                    "discord_id": str(discord_id),
+                    "discord_id": int(discord_id),
                     "pack_type": pack_type,
                     "change": -balance,
                     "notes": "Packs shipped out",
                     "created_by": str(interaction.user.id)
                 }).execute()
-                claims.append(f"**{balance} x {pack_type.title()}**")
+                claims.append(f"**{balance} x {PACK_TYPES[pack_type]}**")
             except Exception as e:
                 print(f"Error fulfilling {pack_type}: {e}")
 
