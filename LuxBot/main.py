@@ -117,7 +117,7 @@ class RegistrationModalPart2(discord.ui.Modal, title="Registration - Step 2/2"):
             "last_name": self.part1_data["last_name"],
             "address": self.part1_data["address"],
             "city": self.part1_data["city"],
-            "zip_code": self.part1_data["zip_code"],
+            "zip_code": str(self.part1_data["zip_code"]),
             "state": self.state.value,
             "country": self.country.value,
             "email": self.email.value,
@@ -139,7 +139,8 @@ class RegistrationModalPart2(discord.ui.Modal, title="Registration - Step 2/2"):
                     pass
             
             if not message_edited:
-                await interaction.followup.send("Registration complete! Your data has been saved.", ephemeral=True)
+                await interaction.followup.send("Registration complete! Your data has been saved."
+                                                "\nAll data is stored securely, if you'd like your data deleted contact an Admin", ephemeral=True)
         except Exception as e:
             print(f"Registration error: {e}")
             await interaction.followup.send("An error occurred while saving your data. Please try again later.", ephemeral=True)
