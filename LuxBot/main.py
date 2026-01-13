@@ -20,6 +20,13 @@ token = os.getenv('DISCORD_TOKEN')
 
 FLASK_BASE_URL = str(os.getenv("FLASK_URL"))
 
+PACK_TYPES = {
+    "POKE": "POKEMON",
+    "YUGI": "YUGIOH",
+    "RIFT": "RIFTBOUND",
+    "LORC": "LORCANA",
+}
+
 supabase_url: str = os.environ.get("SUPABASE_URL")
 supabase_key: str = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(
@@ -51,7 +58,170 @@ async def on_ready():
         print("Command sync failed:", e)
 
 
-# User command to initiate checkout sequence through Stripe
+@bot.tree.command(name="award_packs", description="ADMIN: Award participation packs")
+@app_commands.describe(
+    user="User to award packs to",
+    pack_type="Type of pack to award",
+    amount="Amount of packs to award",
+    notes="Tournament/Reason",
+)
+@app_commands.choices(pack_type=[
+    app_commands.Choice(name="Pokemon", value="POKEMON"),
+    app_commands.Choice(name="Yu-Gi-Oh", value="YUGIOH"),
+    app_commands.Choice(name="Riftbound", value="RIFTBOUND"),
+    app_commands.Choice(name="Lorcana", value="LORCANA"),
+])
+async def award_packs(
+        interaction: discord.Interaction,
+        user: discord.User,
+        pack_type: app_commands.Choice[str],
+        amount: int,
+        notes: str, ):
+    
+    if not interaction.user.guild_permissions.administrator:
+        return await interaction.response.send_message(
+            "You do not have permission to use this command.", ephemeral=True
+        )
+
+    if amount <= 0:
+        return await interaction.response.send_message(
+            "Amount must be greater than 0.", ephemeral=True
+        )
+
+    await interaction.response.defer(ephemeral=True)
+
+    try:
+        # Record the award in Supabase
+        # Note: Assuming 'Pack_Awards' table exists or similar to 'Order_History'
+        response = supabase.table("pack_ledger").insert({
+            "discord_id": str(user.id),
+            "pack_type": pack_type.value,
+            "change": amount,
+            "notes": notes,
+            "created_by": str(interaction.user.id)
+        }).execute()
+        ledger_id = response.data[0]["id"]
+
+    except Exception as e:
+        await interaction.followup.send(f"Failed to award packs: (DB Error)", ephemeral=True)
+
+    await interaction.followup.send(
+        f"Successfully awarded **{amount} x {pack_type.name}** packs to **{user.display_name}**.\nNotes: {notes}",
+        ephemeral=True
+    )
+
+    try:
+        await user.send(f"You have been awarded **{amount} x {pack_type.name}** participation packs.\nNotes: {notes}")
+    except discord.Forbidden:
+        pass
+
+@app_commands.command(name="check_packs", description="Show your participation pack balances")
+@app_commands.describe(user="Optional: view someone else's packs (admin only)")
+async def packs(interaction: discord.Interaction, user: discord.User | None = None):
+    # Default to self
+    target = user or interaction.user
+
+    # Optional permission rule: only allow viewing others if admin
+    if user is not None and not interaction.user.guild_permissions.administrator:
+        return await interaction.response.send_message(
+            "You can only view your own packs.",
+            ephemeral=True
+        )
+
+    discord_id = int(target.id)
+
+    try:
+        response = (
+            supabase.table("pack_ledger")
+            .select("pack_type, change")
+            .eq("discord_id", discord_id)
+            .execute()
+        )
+        rows = response.data or []
+    except Exception:
+        return await interaction.response.send_message(
+            "Failed to fetch packs (database error).",
+            ephemeral=True
+        )
+
+    balances = {i: 0 for i in PACK_TYPES}
+    for row in rows:
+        pack_type = str(row.get("pack_type", "")).upper()
+        if pack_type in balances:
+            balances[pack_type] += int(row.get("change") or 0)
+
+    # Build display
+    lines = [f"**{pack_type.title()}**: `{balances[pack_type]}`" for pack_type in PACK_TYPES]
+
+    embed = discord.Embed(
+        title=f"{target.display_name}'s Packs",
+        description="\n".join(lines),
+    )
+    embed.set_thumbnail(url=target.display_avatar.url)
+
+    await interaction.response.send_message(embed=embed, ephemeral=(user is None))
+
+
+@bot.tree.command(name="fulfill_packs", description="ADMIN: Fulfill shipment of a user's packs")
+async def claim_packs(interaction: discord.Interaction,
+                      user: discord.User):
+
+    if not interaction.user.guild_permissions.administrator:
+        return await interaction.response.send_message(
+            "You do not have permission to use this command.", ephemeral=True
+        )
+
+    await interaction.response.defer(ephemeral=True)
+
+    discord_id = int(user.id)
+
+    try:
+        # Fetch current ledger to calculate balances
+        response = (
+            supabase.table("pack_ledger")
+            .select("pack_type, change")
+            .eq("discord_id", discord_id)
+            .execute()
+        )
+        rows = response.data or []
+    except Exception:
+        return await interaction.followup.send(
+            "Failed to fetch packs (database error).",
+            ephemeral=True
+        )
+
+    balances = {i: 0 for i in PACK_TYPES}
+    for row in rows:
+        pack_type = str(row.get("pack_type", "")).upper()
+        if pack_type in balances:
+            balances[pack_type] += int(row.get("change") or 0)
+
+    claims = []
+    for pack_type, balance in balances.items():
+        if balance > 0:
+            try:
+                supabase.table("pack_ledger").insert({
+                    "discord_id": str(discord_id),
+                    "pack_type": pack_type,
+                    "change": -balance,
+                    "notes": "Packs shipped out",
+                    "created_by": str(interaction.user.id)
+                }).execute()
+                claims.append(f"**{balance} x {pack_type.title()}**")
+            except Exception as e:
+                print(f"Error fulfilling {pack_type}: {e}")
+
+    if not claims:
+        return await interaction.followup.send("No packs left to fulfill", ephemeral=True)
+
+    summary = "\n".join(claims)
+    try:
+        await user.send(f"You have been shipped: \n{summary}")
+    except discord.Forbidden:
+        pass
+
+
+#User command to initiate checkout sequence through Stripe
 @bot.tree.command(name="buytoken", description="Buy token packs (via DM)")
 async def buytoken(interaction: discord.Interaction):
 
