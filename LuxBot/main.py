@@ -113,7 +113,7 @@ async def create_tournament(interaction: discord.Interaction,
         "auto_start_on_fill": False,                    # boolean
         "auto_create_matches": True,                    # boolean
         "auto_create_new_tournament": 0,                # int
-        "team_size": 1,                              # int | null
+        "team_size": int(1),                              # int | null
         "name": name,                                   # string | null
         "description": desc,                            # string
         "details": desc,                                # string | null
