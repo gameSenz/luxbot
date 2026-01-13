@@ -64,9 +64,9 @@ async def full_register(interaction: discord.Interaction):
 class RegistrationModalPart1(discord.ui.Modal, title="Registration - Step 1/2"):
     first_name = discord.ui.TextInput(label="First Name", placeholder="Enter your first name", required=True)
     last_name = discord.ui.TextInput(label="Last Name", placeholder="Enter your last name", required=False)
-    address = discord.ui.TextInput(label="Address", placeholder="Street, City, Zip Code if applicable", required=True)
-    state = discord.ui.TextInput(label="State/Province", placeholder="e.g NJ, or None", required=False)
-    country = discord.ui.TextInput(label="Country", placeholder="e.g. USA, Germany", required=True)
+    address = discord.ui.TextInput(label="Street Address", placeholder="Street address", required=True)
+    city = discord.ui.TextInput(label="City", placeholder="Enter your city", required=True)
+    zip_code = discord.ui.TextInput(label="Zip Code", placeholder="Enter your zip code (if applicable)", required=False)
 
     async def on_submit(self, interaction: discord.Interaction):
         # Store data and move to part 2
@@ -74,8 +74,8 @@ class RegistrationModalPart1(discord.ui.Modal, title="Registration - Step 1/2"):
             "first_name": self.first_name.value,
             "last_name": self.last_name.value,
             "address": self.address.value,
-            "state": self.state.value,
-            "country": self.country.value
+            "city": self.city.value,
+            "zip_code": self.zip_code.value
         }
         
         view = RegistrationStep2View(data)
@@ -98,6 +98,8 @@ class RegistrationStep2View(discord.ui.View):
         await interaction.response.send_modal(RegistrationModalPart2(self.part1_data))
 
 class RegistrationModalPart2(discord.ui.Modal, title="Registration - Step 2/2"):
+    state = discord.ui.TextInput(label="State/Province", placeholder="e.g NJ, or None", required=False)
+    country = discord.ui.TextInput(label="Country", placeholder="e.g. USA, Germany", required=True)
     email = discord.ui.TextInput(label="Email", placeholder="Enter your email address", required=True)
     recovery_question = discord.ui.TextInput(label="Recovery Question", placeholder="e.g. Your first pet's name?", required=True)
     recovery_answer = discord.ui.TextInput(label="Recovery Answer", placeholder="Enter the answer", required=True)
@@ -114,8 +116,10 @@ class RegistrationModalPart2(discord.ui.Modal, title="Registration - Step 2/2"):
             "first_name": self.part1_data["first_name"],
             "last_name": self.part1_data["last_name"],
             "address": self.part1_data["address"],
-            "state": self.part1_data["state"],
-            "country": self.part1_data["country"],
+            "city": self.part1_data["city"],
+            "zip_code": self.part1_data["zip_code"],
+            "state": self.state.value,
+            "country": self.country.value,
             "email": self.email.value,
             "recovery_question": self.recovery_question.value,
             "recovery_answer": self.recovery_answer.value
