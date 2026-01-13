@@ -125,12 +125,16 @@ class RegistrationModalPart2(discord.ui.Modal, title="Registration - Step 2/2"):
             # upsert so they can update their data if they run it again
             supabase.table("customer_data").upsert(full_data).execute()
             # Disable the button in the view so they don't click it again
+            message_edited = False
             if interaction.message:
-                view = discord.ui.View.from_message(interaction.message)
-                for item in view.children:
-                    item.disabled = True
-                await interaction.message.edit(content="Registration complete! Your data has been saved.", view=None)
-            else:
+                try:
+                    await interaction.message.edit(content="Registration complete! Your data has been saved.", view=None)
+                    message_edited = True
+                except discord.NotFound:
+                    # Message might have been deleted or is inaccessible
+                    pass
+            
+            if not message_edited:
                 await interaction.followup.send("Registration complete! Your data has been saved.", ephemeral=True)
         except Exception as e:
             print(f"Registration error: {e}")
