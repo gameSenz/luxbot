@@ -152,11 +152,16 @@ async def create_tournament(interaction: discord.Interaction,
             return text
     try:
         async with aiohttp.ClientSession() as session:
-            await post_json(session, "https://api.neatqueue.com/api/v2/tournament/create", tournament_payload)
-            await post_json(session, "https://api.neatqueue.com/api/v2/lobbychannel/timer", timer_payload)
-            await post_json(session, "https://api.neatqueue.com/api/v2/tempchannels/name", channels_payload)
-            await post_json(session, "https://api.neatqueue.com/api/v2/voicechannels/teamchannels", voice_payload)
-            await post_json(session, "https://api.neatqueue.com/api/v2/tournament/start", start_payload)
+            r1 = await post_json(session, "https://api.neatqueue.com/api/v2/tournament/create", tournament_payload)
+            r2 = await post_json(session, "https://api.neatqueue.com/api/v2/lobbychannel/timer", timer_payload)
+            r3 = await post_json(session, "https://api.neatqueue.com/api/v2/tempchannels/name", channels_payload)
+            r4 = await post_json(session, "https://api.neatqueue.com/api/v2/voicechannels/teamchannels", voice_payload)
+            r5 = await post_json(session, "https://api.neatqueue.com/api/v2/tournament/start", start_payload)
+        print(r1)
+        print(r2)
+        print(r3)
+        print(r4)
+        print(r5)
         await interaction.followup.send(
             f"You have successfully created **{name}** tournament for **{player_count}** players.", ephemeral=True
         )
