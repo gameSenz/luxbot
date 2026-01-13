@@ -166,7 +166,9 @@ async def check_packs(interaction: discord.Interaction, user: discord.User | Non
 
 @bot.tree.command(name="fulfill_packs", description="ADMIN: Fulfill shipment of a user's packs")
 async def fulfill_packs(interaction: discord.Interaction,
-                      user: discord.User):
+                      user: discord.User
+                    # shipping_url: str
+                        ):
 
     if not interaction.user.guild_permissions.administrator:
         return await interaction.response.send_message(
@@ -206,6 +208,7 @@ async def fulfill_packs(interaction: discord.Interaction,
                     "discord_id": int(discord_id),
                     "pack_type": pack_type,
                     "change": -balance,
+                    #"notes: shipping_url
                     "notes": "Packs shipped out",
                     "created_by": str(interaction.user.id)
                 }).execute()
@@ -219,6 +222,7 @@ async def fulfill_packs(interaction: discord.Interaction,
     summary = "\n".join(claims)
     try:
         await user.send(f"You have been shipped: \n{summary}")
+                        # f"\nTracking Info: {shipping_url}")
     except discord.Forbidden:
         pass
 
