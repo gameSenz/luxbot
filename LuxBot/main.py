@@ -107,17 +107,17 @@ async def create_tournament(interaction: discord.Interaction,
     await interaction.response.defer(ephemeral=True)
 
     tournament_payload = {
-        "channel_id": interaction.channel_id,          # int
-        "maximum_participants": player_count,           # int
-        "tournament_type": "single_elimination",        # string
-        "auto_start_on_fill": "false",                    # boolean
+        "channel_id": int(interaction.channel_id),          # int
+        "maximum_participants": int(player_count),           # int
+        # "tournament_type": "single_elimination",        # string
+        "auto_start_on_fill": False,                    # boolean
         # "auto_create_matches": True,                    # boolean
-        "auto_create_new_tournament": 2,                # int
+        "auto_create_new_tournament": int(0),                # int
         "team_size": int(1),                              # int | null
-        "name": name,                                   # string | null
-        "description": desc,                            # string
-        "details": desc,                                # string | null
-        "forfeit_timer_sec": 36000,                     # int | null
+        "name": str(name),                                   # string | null
+        "description": str(desc),                            # string
+        "details": str(desc),                                # string | null
+        "forfeit_timer_sec": int(36000),                     # int | null
         # "hold_third_place_match": False,                # boolean
         # "url": None,                                    # string | null
         # "subdomain": None,                              # string | null
