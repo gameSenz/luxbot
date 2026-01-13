@@ -62,8 +62,8 @@ async def full_register(interaction: discord.Interaction):
     await interaction.response.send_modal(RegistrationModalPart1())
 
 class RegistrationModalPart1(discord.ui.Modal, title="Registration - Step 1/2"):
-    first_name = discord.ui.TextInput(label="first_name", placeholder="Enter your first name", required=True)
-    last_name = discord.ui.TextInput(label="last_name", placeholder="Enter your last name", required=False)
+    first_name = discord.ui.TextInput(label="First Name", placeholder="Enter your first name", required=True)
+    last_name = discord.ui.TextInput(label="Last Name", placeholder="Enter your last name", required=False)
     address = discord.ui.TextInput(label="Address", placeholder="Street, City, Zip Code if applicable", required=True)
     state = discord.ui.TextInput(label="State/Province", placeholder="e.g NJ, or None", required=False)
     country = discord.ui.TextInput(label="Country", placeholder="e.g. USA, Germany", required=True)
@@ -78,6 +78,13 @@ class RegistrationModalPart1(discord.ui.Modal, title="Registration - Step 1/2"):
             "country": self.country.value
         }
         await interaction.response.send_modal(RegistrationModalPart2(data))
+        
+    async def on_error(self, interaction: discord.Interaction, error: Exception):
+        print("Modal Part1 error:", repr(error))
+        if interaction.response.is_done():
+            await interaction.followup.send("Error in Step 1. Try again.", ephemeral=True)
+        else:
+            await interaction.response.send_message("Error in Step 1. Try again.", ephemeral=True)
 
 class RegistrationModalPart2(discord.ui.Modal, title="Registration - Step 2/2"):
     email = discord.ui.TextInput(label="Email", placeholder="Enter your email address", required=True)
