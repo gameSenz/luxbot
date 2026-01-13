@@ -157,11 +157,12 @@ async def create_tournament(interaction: discord.Interaction,
             r3 = await post_json(session, "https://api.neatqueue.com/api/v2/tempchannels/name", channels_payload)
             r4 = await post_json(session, "https://api.neatqueue.com/api/v2/voicechannels/teamchannels", voice_payload)
             r5 = await post_json(session, "https://api.neatqueue.com/api/v2/tournament/start", start_payload)
-        print(r1)
-        print(r2)
-        print(r3)
-        print(r4)
-        print(r5)
+        await interaction.followup.send(f"DEBUG r1={repr(r1)[:200]}", ephemeral=True)
+        await interaction.followup.send(f"DEBUG r2={repr(r2)[:200]}", ephemeral=True)
+        await interaction.followup.send(f"DEBUG r3={repr(r3)[:200]}", ephemeral=True)
+        await interaction.followup.send(f"DEBUG r4={repr(r4)[:200]}", ephemeral=True)
+        await interaction.followup.send(f"DEBUG r5={repr(r5)[:200]}", ephemeral=True)
+
         await interaction.followup.send(
             f"You have successfully created **{name}** tournament for **{player_count}** players.", ephemeral=True
         )
