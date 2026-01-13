@@ -77,7 +77,9 @@ class RegistrationModalPart1(discord.ui.Modal, title="Registration - Step 1/2"):
             "state": self.state.value,
             "country": self.country.value
         }
-        await interaction.response.send_modal(RegistrationModalPart2(data))
+        
+        view = RegistrationStep2View(data)
+        await interaction.response.send_message("Step 1 complete! Click the button below to finish registration.", view=view, ephemeral=True)
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
         print("Modal Part1 error:", repr(error))
@@ -85,6 +87,15 @@ class RegistrationModalPart1(discord.ui.Modal, title="Registration - Step 1/2"):
             await interaction.followup.send(f"Error in Step 1. Try again. {error}", ephemeral=True)
         else:
             await interaction.response.send_message(f"Error in Step 1. Try again. {error}", ephemeral=True)
+
+class RegistrationStep2View(discord.ui.View):
+    def __init__(self, part1_data):
+        super().__init__(timeout=600)
+        self.part1_data = part1_data
+
+    @discord.ui.button(label="Complete Registration (Step 2)", style=discord.ButtonStyle.primary)
+    async def complete_registration(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(RegistrationModalPart2(self.part1_data))
 
 class RegistrationModalPart2(discord.ui.Modal, title="Registration - Step 2/2"):
     email = discord.ui.TextInput(label="Email", placeholder="Enter your email address", required=True)
@@ -113,7 +124,14 @@ class RegistrationModalPart2(discord.ui.Modal, title="Registration - Step 2/2"):
         try:
             # upsert so they can update their data if they run it again
             supabase.table("customer_data").upsert(full_data).execute()
-            await interaction.followup.send("Registration complete! Your data has been saved.", ephemeral=True)
+            # Disable the button in the view so they don't click it again
+            if interaction.message:
+                view = discord.ui.View.from_message(interaction.message)
+                for item in view.children:
+                    item.disabled = True
+                await interaction.message.edit(content="Registration complete! Your data has been saved.", view=None)
+            else:
+                await interaction.followup.send("Registration complete! Your data has been saved.", ephemeral=True)
         except Exception as e:
             print(f"Registration error: {e}")
             await interaction.followup.send("An error occurred while saving your data. Please try again later.", ephemeral=True)
