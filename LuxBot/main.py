@@ -106,7 +106,7 @@ async def award_packs(
         await interaction.followup.send(f"Failed to award packs: (DB Error)", ephemeral=True)
 
     await interaction.followup.send(
-        f"Successfully awarded **{amount} x {pack_type.name}** packs to **{user.display_name}**.\nNotes: {notes}",
+        f"Successfully awarded **{amount}x {pack_type.name}** packs to **{user.display_name}**.\nNotes: {notes}",
         ephemeral=True
     )
 
@@ -117,7 +117,7 @@ async def award_packs(
 
 @app_commands.command(name="check_packs", description="Show your participation pack balances")
 @app_commands.describe(user="Optional: view someone else's packs (admin only)")
-async def packs(interaction: discord.Interaction, user: discord.User | None = None):
+async def check_packs(interaction: discord.Interaction, user: discord.User | None = None):
     # Default to self
     target = user or interaction.user
 
