@@ -62,8 +62,8 @@ async def full_register(interaction: discord.Interaction):
     await interaction.response.send_modal(RegistrationModalPart1())
 
 class RegistrationModalPart1(discord.ui.Modal, title="Registration - Step 1/2"):
-    first_name = discord.ui.TextInput(label="First Name", placeholder="Enter your first name", required=True)
-    last_name = discord.ui.TextInput(label="Last Name", placeholder="Enter your last name", required=False)
+    first_name = discord.ui.TextInput(label="first_name", placeholder="Enter your first name", required=True)
+    last_name = discord.ui.TextInput(label="last_name", placeholder="Enter your last name", required=False)
     address = discord.ui.TextInput(label="Address", placeholder="Street, City, Zip Code if applicable", required=True)
     state = discord.ui.TextInput(label="State/Province", placeholder="e.g NJ, or None", required=False)
     country = discord.ui.TextInput(label="Country", placeholder="e.g. USA, Germany", required=True)
@@ -71,8 +71,8 @@ class RegistrationModalPart1(discord.ui.Modal, title="Registration - Step 1/2"):
     async def on_submit(self, interaction: discord.Interaction):
         # Store data and move to part 2
         data = {
-            "First Name": self.first_name.value,
-            "Last Name": self.last_name.value,
+            "first_name": self.first_name.value,
+            "last_name": self.last_name.value,
             "address": self.address.value,
             "state": self.state.value,
             "country": self.country.value
@@ -93,8 +93,8 @@ class RegistrationModalPart2(discord.ui.Modal, title="Registration - Step 2/2"):
         
         full_data = {
             "discord_id": interaction.user.id,
-            "First Name": self.part1_data["First Name"],
-            "Last Name": self.part1_data["Last Name"],
+            "first_name": self.part1_data["first_name"],
+            "last_name": self.part1_data["last_name"],
             "address": self.part1_data["address"],
             "state": self.part1_data["state"],
             "country": self.part1_data["country"],
