@@ -111,7 +111,7 @@ async def award_packs(
     )
 
     try:
-        await user.send(f"You have been awarded **{amount} x {pack_type.name}** participation packs.\nNotes: {notes}")
+        await user.send(f"You have been awarded **{amount} x {pack_type.name}** participation packs.\nNotes: {notes}\nReceipt ID: **{ledger_id}**")
     except discord.Forbidden:
         pass
 
