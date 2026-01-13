@@ -222,6 +222,7 @@ async def fulfill_packs(interaction: discord.Interaction,
     except discord.Forbidden:
         pass
 
+    await interaction.followup.send(f"Successfully shipped: \n{summary}", ephemeral=True)
 
 #User command to initiate checkout sequence through Stripe
 @bot.tree.command(name="buytoken", description="Buy token packs (via DM)")
