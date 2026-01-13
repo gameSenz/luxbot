@@ -57,6 +57,61 @@ async def on_ready():
     except Exception as e:
         print("Command sync failed:", e)
 
+@bot.tree.command(name="full_register", description="Fully register data, to receive prizing")
+async def full_register(interaction: discord.Interaction):
+    await interaction.response.send_modal(RegistrationModalPart1())
+
+class RegistrationModalPart1(discord.ui.Modal, title="Registration - Step 1/2"):
+    first_name = discord.ui.TextInput(label="First Name", placeholder="Enter your first name", required=True)
+    last_name = discord.ui.TextInput(label="Last Name", placeholder="Enter your last name", required=False)
+    address = discord.ui.TextInput(label="Address", placeholder="Street, City, Zip Code if applicable", required=True)
+    state = discord.ui.TextInput(label="State/Province", placeholder="e.g NJ, or None", required=False)
+    country = discord.ui.TextInput(label="Country", placeholder="e.g. USA, Germany", required=True)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        # Store data and move to part 2
+        data = {
+            "First Name": self.first_name.value,
+            "Last Name": self.last_name.value,
+            "address": self.address.value,
+            "state": self.state.value,
+            "country": self.country.value
+        }
+        await interaction.response.send_modal(RegistrationModalPart2(data))
+
+class RegistrationModalPart2(discord.ui.Modal, title="Registration - Step 2/2"):
+    email = discord.ui.TextInput(label="Email", placeholder="Enter your email address", required=True)
+    recovery_question = discord.ui.TextInput(label="Recovery Question", placeholder="e.g. Your first pet's name?", required=True)
+    recovery_answer = discord.ui.TextInput(label="Recovery Answer", placeholder="Enter the answer", required=True)
+
+    def __init__(self, part1_data):
+        super().__init__()
+        self.part1_data = part1_data
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        
+        full_data = {
+            "discord_id": interaction.user.id,
+            "First Name": self.part1_data["First Name"],
+            "Last Name": self.part1_data["Last Name"],
+            "address": self.part1_data["address"],
+            "state": self.part1_data["state"],
+            "country": self.part1_data["country"],
+            "email": self.email.value,
+            "recovery_question": self.recovery_question.value,
+            "recovery_answer": self.recovery_answer.value
+        }
+
+        try:
+            # upsert so they can update their data if they run it again
+            supabase.table("customer_data").upsert(full_data).execute()
+            await interaction.followup.send("Registration complete! Your data has been saved.", ephemeral=True)
+        except Exception as e:
+            print(f"Registration error: {e}")
+            await interaction.followup.send("An error occurred while saving your data. Please try again later.", ephemeral=True)
+
+    
 
 @bot.tree.command(name="award_packs", description="ADMIN: Award participation packs")
 @app_commands.describe(
