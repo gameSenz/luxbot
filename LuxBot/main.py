@@ -109,20 +109,20 @@ async def create_tournament(interaction: discord.Interaction,
     tournament_payload = {
         "channel_id": int(interaction.channel_id),          # int
         "maximum_participants": int(player_count),           # int
-        # "tournament_type": "single_elimination",        # string
+        "tournament_type": "single_elimination",        # string
         "auto_start_on_fill": False,                    # boolean
-        # "auto_create_matches": True,                    # boolean
+        "auto_create_matches": True,                    # boolean
         "auto_create_new_tournament": int(0),                # int
         "team_size": int(1),                              # int | null
         "name": str(name),                                   # string | null
         "description": str(desc),                            # string
         "details": str(desc),                                # string | null
         "forfeit_timer_sec": int(36000),                     # int | null
-        # "hold_third_place_match": False,                # boolean
-        # "url": None,                                    # string | null
-        # "subdomain": None,                              # string | null
-        # "entry_price": None,                            # int | null
-        # "payout_fee": None                              # int | null
+        "hold_third_place_match": False,                # boolean
+        "url": None,                                    # string | null
+        "subdomain": None,                              # string | null
+        "entry_price": None,                            # int | null
+        "payout_fee": None                              # int | null
     }
     voice_payload = {
         "channel_id": interaction.channel_id,           # int
