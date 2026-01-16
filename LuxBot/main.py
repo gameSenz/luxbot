@@ -385,7 +385,7 @@ async def create_tournament(interaction: discord.Interaction,
         "name": str(name),                                   # string | null
         "description": str(desc),                            # string
         "details": str(desc),                                # string | null
-        "forfeit_timer_sec": int(36000),                     # int | null
+        "forfeit_timer_sec": int(1200),                     # int | null
         "hold_third_place_match": False,                # boolean
         "url": None,                                    # string | null
         "subdomain": None,                              # string | null
@@ -402,7 +402,7 @@ async def create_tournament(interaction: discord.Interaction,
     }
     timer_payload = {
         "channel_id": interaction.channel_id,           # int
-        "timer": 36000                                  # int
+        "timer": 1200                                  # int
     }
     price_payload = {
         "channel_id": interaction.channel_id,
