@@ -389,7 +389,7 @@ async def create_tournament(interaction: discord.Interaction,
         "hold_third_place_match": False,                # boolean
         "url": None,                                    # string | null
         "subdomain": None,                              # string | null
-        "entry_price": None,                            # int | null
+        "entry_price": cost,                            # int | null
         "payout_fee": 100                              # int | null
     }
     voice_payload = {
