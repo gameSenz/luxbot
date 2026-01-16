@@ -378,9 +378,9 @@ async def create_tournament(interaction: discord.Interaction,
         "channel_id": int(interaction.channel_id),          # int
         "maximum_participants": int(player_count),           # int
         "tournament_type": "single_elimination",        # string
-        "auto_start_on_fill": False,                    # boolean
+        "auto_start_on_fill": True,                    # boolean
         "auto_create_matches": True,                    # boolean
-        "auto_create_new_tournament": int(0),                # int
+        "auto_create_new_tournament": int(2),                # int
         "team_size": int(1),                              # int | null
         "name": str(name),                                   # string | null
         "description": str(desc),                            # string
