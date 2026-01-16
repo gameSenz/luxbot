@@ -389,8 +389,8 @@ async def create_tournament(interaction: discord.Interaction,
         "hold_third_place_match": False,                # boolean
         "url": None,                                    # string | null
         "subdomain": None,                              # string | null
-        "entry_price": cost,                            # int | null
-        "payout_fee": 100                              # int | null
+        "entry_price": None,                            # int | null
+        "payout_fee": None                              # int | null
     }
     voice_payload = {
         "channel_id": interaction.channel_id,           # int
@@ -404,8 +404,10 @@ async def create_tournament(interaction: discord.Interaction,
         "channel_id": interaction.channel_id,           # int
         "timer": 36000                                  # int
     }
-    start_payload = {
-        "channel_id": interaction.channel_id
+    price_payload = {
+        "channel_id": interaction.channel_id,
+        "value": cost,
+        "payout_fee": 100
     }
     # Authenticating API Key + Declaring JSON to be sent
     headers = {
@@ -424,7 +426,7 @@ async def create_tournament(interaction: discord.Interaction,
             r2 = await post_json(session, "https://api.neatqueue.com/api/v2/lobbychannel/timer", timer_payload)
             r3 = await post_json(session, "https://api.neatqueue.com/api/v2/tempchannels/name", channels_payload)
             r4 = await post_json(session, "https://api.neatqueue.com/api/v2/voicechannels/teamchannels", voice_payload)
-            r5 = await post_json(session, "https://api.neatqueue.com/api/v2/tournament/start", start_payload)
+            r5 = await post_json(session, "https://api.neatqueue.com/api/v2/queueentry/price", price_payload)
         await interaction.followup.send(f"DEBUG r1={repr(r1)[:200]}", ephemeral=True)
         await interaction.followup.send(f"DEBUG r2={repr(r2)[:200]}", ephemeral=True)
         await interaction.followup.send(f"DEBUG r3={repr(r3)[:200]}", ephemeral=True)
