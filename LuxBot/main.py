@@ -363,12 +363,14 @@ async def tokencheck(interaction: discord.Interaction):
 @app_commands.describe(
     name="Tournament Name",
     desc="Create a new tournament",
-    player_count="Amt of players"
+    player_count="Amt of players",
+    cost="Cost of tournament"
 )
 async def create_tournament(interaction: discord.Interaction,
                             name: str,
                             desc: str,
                             player_count: int,
+                            cost: int
                             ):
     await interaction.response.defer(ephemeral=True)
 
@@ -388,7 +390,7 @@ async def create_tournament(interaction: discord.Interaction,
         "url": None,                                    # string | null
         "subdomain": None,                              # string | null
         "entry_price": None,                            # int | null
-        "payout_fee": None                              # int | null
+        "payout_fee": 100                              # int | null
     }
     voice_payload = {
         "channel_id": interaction.channel_id,           # int
