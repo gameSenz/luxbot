@@ -119,12 +119,11 @@ class TokenSelect(discord.ui.Select):
                         return
                     data = await resp.json()
                     print(data)
-        except Exception as e:
+        except Exception:
             await interaction.response.send_message(
                 "Payment Service Unavailable.",
                 ephemeral=True
             )
-            print(e)
             return
 
         payment_url = data.get("payment_url")
