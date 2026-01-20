@@ -200,7 +200,7 @@ def stripe_webhook():
             headers=headers,
             timeout=10,
         )
-
+        print(response)
         # applies payout, or advises user if NeatQ is having issues
         if response.status_code != 200:
             print("Failed to call NeatQ, Contact an Admin to receive tokens", response.status_code, response.text)
