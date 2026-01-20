@@ -341,7 +341,7 @@ async def tokencheck(interaction: discord.Interaction):
 
     try:
         # On NEATQ TEST UPDATE ON LIVE
-        response = requests.get(f"https://api.neatqueue.com/api/v1/playerstats/1442266660823240766/{interaction.user.id}",timeout=5)
+        response = requests.get(f"https://api.neatqueue.com/api/v1/playerstats/727698409938616373/{interaction.user.id}",timeout=5)
     except requests.RequestException as e:
         await interaction.followup.send(f"NeatQ request failed: {e}", ephemeral=True)
         return
