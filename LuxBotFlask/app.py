@@ -182,7 +182,7 @@ def stripe_webhook():
         # https://api.neatqueue.com/docs#/Commands/add_stats_api_v2_add_stats_post
         # Generating JSON to send to API
         bot_payload = {
-            "channel_id": 1442266661737725974,
+            "channel_id": 1463201410886930453,
             "stat": 'points',
             "value": int(price_map[price_id]),
             "user_id": int(discord_id),
