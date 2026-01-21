@@ -1,3 +1,7 @@
+import random
+import datetime
+from datetime import datetime
+
 import aiohttp
 import discord
 import requests
@@ -360,6 +364,76 @@ async def tokencheck(interaction: discord.Interaction):
     await interaction.followup.send(f"You have **{points}** tokens/points")
 
 
+@bot.tree.command(name="grant_tokens", description="ADMIN ONLY: Grant tokens to a user")
+@app_commands.describe(user="User to grant tokens to", amount="Amount of tokens to grant")
+async def grant_tokens(interaction: discord.Interaction, user: discord.User, amount: int):
+    if not interaction.user.guild_permissions.administrator:
+        return await interaction.response.send_message(
+            "You do not have permission to use this command.", ephemeral=True
+        )
+
+    await interaction.response.defer(ephemeral=True)
+
+    discord_id = int(user.id)
+    creation_date = datetime.now(datetime.timezone.utc)
+    product = f"Admin {amount} Token(s)"
+    email = "admin@lux.com"
+
+    try:
+        # Record the award in Supabase
+        supabase.table("Order_History").insert({
+            "discord_id": discord_id,
+            "created_at": creation_date.isoformat(),
+            "product": product,
+            "email": email,
+            "notified": True,
+        }).execute()
+        
+    except Exception as e:
+        print(f"DB Error: {e}")
+        await interaction.followup.send(f"Failed to record in database.", ephemeral=True)
+        return
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            bot_payload = {
+                "channel_id": 1463201410886930453,
+                "stat": 'points',
+                "value": int(amount),
+                "user_id": int(discord_id),
+                "role_id": None
+            }
+            # Authenticating API Key + Declaring JSON to be sent
+            headers = {
+                "Authorization": os.getenv("NEATQUEUE_KEY"),
+                "Content-Type": "application/json",
+            }
+            # send a POST req to NeatQ to process point change
+            async with session.post(
+                "https://api.neatqueue.com/api/v2/add/stats",
+                json=bot_payload,
+                headers=headers,
+                timeout=10,
+            ) as response:
+                print(response.status)
+                # applies payout, or advises user if NeatQ is having issues
+                if response.status != 200:
+                    text = await response.text()
+                    print("Failed to call NeatQ, Contact an Admin to receive tokens", response.status, text)
+                    await interaction.followup.send(f"Tokens recorded in DB, but NeatQ update failed (Status {response.status}).", ephemeral=True)
+                else:
+                    supabase.table("Order_History") \
+                        .update({"payout": True}) \
+                        .eq("created_at", creation_date.isoformat()) \
+                        .execute()
+                    await interaction.followup.send(f"Successfully granted **{amount}** tokens to **{user.display_name}**.", ephemeral=True)
+    except Exception as e:
+        print(f"Failed to grant tokens: {e}")
+        return await interaction.followup.send(f"Failed to grant tokens: {e}", ephemeral=True)
+
+    await user.send(f"You have been granted **{amount}** tokens by an Admin.")
+    await interaction.followup.send(f"Successfully granted **{amount}** tokens to **{user.display_name}**.", ephemeral=True)
+
 @bot.tree.command(name="create_tournament", description="ADMIN ONLY: Create a new tournament")
 @app_commands.describe(
     name="Tournament Name",
@@ -373,6 +447,12 @@ async def create_tournament(interaction: discord.Interaction,
                             player_count: int,
                             cost: int
                             ):
+
+    if not interaction.user.guild_permissions.administrator:
+        return await interaction.response.send_message(
+            "You do not have permission to use this command.", ephemeral=True
+        )
+
     await interaction.response.defer(ephemeral=True)
 
     tournament_payload = {
