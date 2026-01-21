@@ -5,3 +5,4 @@ stripe
 flask
 aiohttp
 supabase
+gunicorn
