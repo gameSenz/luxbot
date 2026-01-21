@@ -380,14 +380,15 @@ async def grant_tokens(interaction: discord.Interaction, user: discord.User, amo
     email = "admin@lux.com"
 
     try:
-        # Record the award in Supabase
-        supabase.table("Order_History").insert({
-            "discord_id": discord_id,
-            "created_at": creation_date.isoformat(),
-            "product": product,
-            "email": email,
-            "notified": True,
-        }).execute()
+        async with aiohttp.ClientSession() as session:
+            # Record the award in Supabase
+            supabase.table("Order_History").insert({
+                "discord_id": discord_id,
+                "created_at": creation_date.isoformat(),
+                "product": product,
+                "email": email,
+                "notified": True,
+            }).execute()
         
     except Exception as e:
         print(f"DB Error: {e}")
