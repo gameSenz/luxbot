@@ -3,6 +3,7 @@ import datetime
 from datetime import datetime
 
 import aiohttp
+import asyncio
 import discord
 import requests
 import json
@@ -132,7 +133,11 @@ class RegistrationModalPart2(discord.ui.Modal, title="Registration - Step 2/2"):
 
         try:
             # upsert so they can update their data if they run it again
-            supabase.table("customer_data").upsert(full_data).execute()
+            def upsert_customer():
+                return supabase.table("customer_data").upsert(full_data).execute()
+            
+            await asyncio.to_thread(upsert_customer)
+
             # Disable the button in the view so they don't click it again
             message_edited = False
             if interaction.message:
@@ -186,17 +191,20 @@ async def award_packs(
 
     try:
         # Record the award in Supabase
-        # Note: Assuming 'Pack_Awards' table exists or similar to 'Order_History'
-        response = supabase.table("pack_ledger").insert({
-            "discord_id": int(user.id),
-            "pack_type": pack_type.value,
-            "change": amount,
-            "notes": notes,
-            "created_by": str(interaction.user.name)
-        }).execute()
+        def insert_award():
+            return supabase.table("pack_ledger").insert({
+                "discord_id": int(user.id),
+                "pack_type": pack_type.value,
+                "change": amount,
+                "notes": notes,
+                "created_by": str(interaction.user.name)
+            }).execute()
+
+        response = await asyncio.to_thread(insert_award)
         ledger_id = response.data[0]["id"]
 
     except Exception as e:
+        print(f"Award packs error: {e}")
         await interaction.followup.send(f"Failed to award packs: (DB Error)", ephemeral=True)
         return
 
@@ -226,14 +234,17 @@ async def check_packs(interaction: discord.Interaction, user: discord.User | Non
     discord_id = int(target.id)
 
     try:
-        response = (
-            supabase.table("pack_ledger")
-            .select("pack_type, change")
-            .eq("discord_id", discord_id)
-            .execute()
-        )
+        def fetch_packs():
+            return (
+                supabase.table("pack_ledger")
+                .select("pack_type, change")
+                .eq("discord_id", discord_id)
+                .execute()
+            )
+        response = await asyncio.to_thread(fetch_packs)
         rows = response.data or []
-    except Exception:
+    except Exception as e:
+        print(f"Check packs error: {e}")
         return await interaction.response.send_message(
             "Failed to fetch packs (database error).",
             ephemeral=True
@@ -275,14 +286,17 @@ async def fulfill_packs(interaction: discord.Interaction,
 
     try:
         # Fetch current ledger to calculate balances
-        response = (
-            supabase.table("pack_ledger")
-            .select("pack_type, change")
-            .eq("discord_id", discord_id)
-            .execute()
-        )
+        def fetch_ledger():
+            return (
+                supabase.table("pack_ledger")
+                .select("pack_type, change")
+                .eq("discord_id", discord_id)
+                .execute()
+            )
+        response = await asyncio.to_thread(fetch_ledger)
         rows = response.data or []
-    except Exception:
+    except Exception as e:
+        print(f"Fulfill packs fetch error: {e}")
         return await interaction.followup.send(
             "Failed to fetch packs (database error).",
             ephemeral=True
@@ -298,14 +312,17 @@ async def fulfill_packs(interaction: discord.Interaction,
     for pack_type, balance in balances.items():
         if balance > 0:
             try:
-                supabase.table("pack_ledger").insert({
-                    "discord_id": int(discord_id),
-                    "pack_type": pack_type,
-                    "change": -balance,
-                    "notes": shipping_url,
-                    # "notes": "Packs shipped out",
-                    "created_by": str(interaction.user.id)
-                }).execute()
+                def fulfill_pack():
+                    return supabase.table("pack_ledger").insert({
+                        "discord_id": int(discord_id),
+                        "pack_type": pack_type,
+                        "change": -balance,
+                        "notes": shipping_url,
+                        # "notes": "Packs shipped out",
+                        "created_by": str(interaction.user.id)
+                    }).execute()
+                
+                await asyncio.to_thread(fulfill_pack)
                 claims.append(f"**{balance} x {PACK_TYPES[pack_type]}**")
             except Exception as e:
                 print(f"Error fulfilling {pack_type}: {e}")
@@ -346,19 +363,19 @@ async def tokencheck(interaction: discord.Interaction):
 
     try:
         # On NEATQ TEST UPDATE ON LIVE
-        response = requests.get(f"https://api.neatqueue.com/api/v1/playerstats/727698409938616373/{interaction.user.id}",timeout=5)
-    except requests.RequestException as e:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"https://api.neatqueue.com/api/v1/playerstats/727698409938616373/{interaction.user.id}", timeout=5) as response:
+                if response.status != 200:
+                    await interaction.followup.send(
+                        f"If you are a **NEW** user your data will be updated on purchase\nElse, failed to fetch tokens either (status {response.status}). Try again later.",
+                        ephemeral=True,
+                    )
+                    return
+                data = await response.json()
+    except Exception as e:
         await interaction.followup.send(f"NeatQ request failed: {e}", ephemeral=True)
         return
 
-    if response.status_code != 200:
-        await interaction.followup.send(
-            f"If you are a **NEW** user your data will be updated on purchase\nElse, failed to fetch tokens either (status {response.status_code}). Try again later.",
-            ephemeral=True,
-        )
-        return
-
-    data=response.json()
     points = data.get('points')
 
     await interaction.followup.send(f"You have **{points}** tokens/points")
@@ -379,24 +396,28 @@ async def grant_tokens(interaction: discord.Interaction, user: discord.User, amo
     product = f"Admin {amount} Token(s)"
     email = "admin@lux.com"
 
-    try:
-        async with aiohttp.ClientSession() as session:
+    # Use a single session for all requests in this command
+    async with aiohttp.ClientSession() as session:
+        try:
             # Record the award in Supabase
-            supabase.table("Order_History").insert({
-                "discord_id": discord_id,
-                "created_at": creation_date.isoformat(),
-                "product": product,
-                "email": email,
-                "notified": True,
-            }).execute()
+            # Since supabase-py is synchronous, we run it in a thread to avoid blocking the event loop
+            def insert_order():
+                return supabase.table("Order_History").insert({
+                    "discord_id": discord_id,
+                    "created_at": creation_date.isoformat(),
+                    "product": product,
+                    "email": email,
+                    "notified": True,
+                }).execute()
+
+            await asyncio.to_thread(insert_order)
+            
+        except Exception as e:
+            print(f"DB Error: {e}")
+            await interaction.followup.send(f"Failed to record in database.", ephemeral=True)
+            return
         
-    except Exception as e:
-        print(f"DB Error: {e}")
-        await interaction.followup.send(f"Failed to record in database.", ephemeral=True)
-        return
-    
-    try:
-        async with aiohttp.ClientSession() as session:
+        try:
             bot_payload = {
                 "channel_id": 1463201410886930453,
                 "stat": 'points',
@@ -423,17 +444,23 @@ async def grant_tokens(interaction: discord.Interaction, user: discord.User, amo
                     print("Failed to call NeatQ, Contact an Admin to receive tokens", response.status, text)
                     await interaction.followup.send(f"Tokens recorded in DB, but NeatQ update failed (Status {response.status}).", ephemeral=True)
                 else:
-                    supabase.table("Order_History") \
-                        .update({"payout": True}) \
-                        .eq("created_at", creation_date.isoformat()) \
-                        .execute()
+                    def update_payout():
+                        return supabase.table("Order_History") \
+                            .update({"payout": True}) \
+                            .eq("created_at", creation_date.isoformat()) \
+                            .execute()
+                    
+                    await asyncio.to_thread(update_payout)
                     await interaction.followup.send(f"Successfully granted **{amount}** tokens to **{user.display_name}**.", ephemeral=True)
-    except Exception as e:
-        print(f"Failed to grant tokens: {e}")
-        return await interaction.followup.send(f"Failed to grant tokens: {e}", ephemeral=True)
+        except Exception as e:
+            print(f"Failed to grant tokens: {e}")
+            return await interaction.followup.send(f"Failed to grant tokens: {e}", ephemeral=True)
 
-    await user.send(f"You have been granted **{amount}** tokens by an Admin.")
-    await interaction.followup.send(f"Successfully granted **{amount}** tokens to **{user.display_name}**.", ephemeral=True)
+    try:
+        await user.send(f"You have been granted **{amount}** tokens by an Admin.")
+    except discord.Forbidden:
+        pass
+    # No need for duplicate followup send here as it's handled above in the 'else' block or try/except
 
 @bot.tree.command(name="create_tournament", description="ADMIN ONLY: Create a new tournament")
 @app_commands.describe(
