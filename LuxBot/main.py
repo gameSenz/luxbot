@@ -21,10 +21,11 @@ token = os.getenv('DISCORD_TOKEN')
 FLASK_BASE_URL = str(os.getenv("FLASK_URL"))
 
 PACK_TYPES = {
-    "POKEMON": "Pokemon",
-    "YUGIOH": "Yu-Gi-Oh",
     "RIFTBOUND": "Riftbound",
-    "LORCANA": "Lorcana",
+    "YUGIOH": "Yu-Gi-Oh (Soon)",
+    "ONEPIECE": "One Piece (Soon)",
+    "POKEMON": "Pokemon (Soon)",
+    "LORCANA": "Lorcana (Soon)",
 }
 
 supabase_url: str = os.environ.get("SUPABASE_URL")
@@ -255,8 +256,8 @@ async def check_packs(interaction: discord.Interaction, user: discord.User | Non
 
 @bot.tree.command(name="fulfill_packs", description="ADMIN: Fulfill shipment of a user's packs")
 async def fulfill_packs(interaction: discord.Interaction,
-                      user: discord.User
-                    # shipping_url: str
+                      user: discord.User,
+                      shipping_url: str
                         ):
 
     if not interaction.user.guild_permissions.administrator:
@@ -297,8 +298,8 @@ async def fulfill_packs(interaction: discord.Interaction,
                     "discord_id": int(discord_id),
                     "pack_type": pack_type,
                     "change": -balance,
-                    #"notes: shipping_url
-                    "notes": "Packs shipped out",
+                    "notes": shipping_url,
+                    # "notes": "Packs shipped out",
                     "created_by": str(interaction.user.id)
                 }).execute()
                 claims.append(f"**{balance} x {PACK_TYPES[pack_type]}**")
@@ -310,8 +311,8 @@ async def fulfill_packs(interaction: discord.Interaction,
 
     summary = "\n".join(claims)
     try:
-        await user.send(f"You have been shipped: \n{summary}")
-                        # f"\nTracking Info: {shipping_url}")
+        await user.send(f"You have been shipped: \n{summary}"
+                        f"\nTracking Info: {shipping_url}")
     except discord.Forbidden:
         pass
 
@@ -427,11 +428,11 @@ async def create_tournament(interaction: discord.Interaction,
             r3 = await post_json(session, "https://api.neatqueue.com/api/v2/tempchannels/name", channels_payload)
             r4 = await post_json(session, "https://api.neatqueue.com/api/v2/voicechannels/teamchannels", voice_payload)
             r5 = await post_json(session, "https://api.neatqueue.com/api/v2/queueentry/price", price_payload)
-        await interaction.followup.send(f"DEBUG r1={repr(r1)[:200]}", ephemeral=True)
-        await interaction.followup.send(f"DEBUG r2={repr(r2)[:200]}", ephemeral=True)
-        await interaction.followup.send(f"DEBUG r3={repr(r3)[:200]}", ephemeral=True)
-        await interaction.followup.send(f"DEBUG r4={repr(r4)[:200]}", ephemeral=True)
-        await interaction.followup.send(f"DEBUG r5={repr(r5)[:200]}", ephemeral=True)
+        # await interaction.followup.send(f"DEBUG r1={repr(r1)[:200]}", ephemeral=True)
+        # await interaction.followup.send(f"DEBUG r2={repr(r2)[:200]}", ephemeral=True)
+        # await interaction.followup.send(f"DEBUG r3={repr(r3)[:200]}", ephemeral=True)
+        # await interaction.followup.send(f"DEBUG r4={repr(r4)[:200]}", ephemeral=True)
+        # await interaction.followup.send(f"DEBUG r5={repr(r5)[:200]}", ephemeral=True)
 
         await interaction.followup.send(
             f"You have successfully created **{name}** tournament for **{player_count}** players.", ephemeral=True
