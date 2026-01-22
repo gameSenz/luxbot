@@ -31,6 +31,7 @@ PACK_TYPES = {
     "ONEPIECE": "One Piece (Soon)",
     "POKEMON": "Pokemon (Soon)",
     "LORCANA": "Lorcana (Soon)",
+    "DBZ": "Dragon Ball (Soon)",
 }
 
 supabase_url: str = os.environ.get("SUPABASE_URL")
@@ -67,12 +68,12 @@ async def on_ready():
 async def full_register(interaction: discord.Interaction):
     await interaction.response.send_modal(RegistrationModalPart1())
 
-class RegistrationModalPart1(discord.ui.Modal, title="Registration - Step 1/2"):
+class RegistrationModalPart1(discord.ui.Modal, title="Registration - Step 1/3"):
     first_name = discord.ui.TextInput(label="First Name", placeholder="Enter your first name", required=True)
     last_name = discord.ui.TextInput(label="Last Name", placeholder="Enter your last name", required=False)
     address = discord.ui.TextInput(label="Street Address", placeholder="Street address", required=True)
     city = discord.ui.TextInput(label="City", placeholder="Enter your city", required=True)
-    zip_code = discord.ui.TextInput(label="Zip Code", placeholder="Enter your zip code (if applicable)", required=False)
+    zip_code = discord.ui.TextInput(label="Zip Code", placeholder="Enter your zip/postal code", required=True)
 
     async def on_submit(self, interaction: discord.Interaction):
         # Store data and move to part 2
@@ -85,7 +86,7 @@ class RegistrationModalPart1(discord.ui.Modal, title="Registration - Step 1/2"):
         }
         
         view = RegistrationStep2View(data)
-        await interaction.response.send_message("Step 1 complete! Click the button below to finish registration.", view=view, ephemeral=True)
+        await interaction.response.send_message("Step 1 complete! Click the button below to continue.", view=view, ephemeral=True)
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
         print("Modal Part1 error:", repr(error))
@@ -99,11 +100,11 @@ class RegistrationStep2View(discord.ui.View):
         super().__init__(timeout=600)
         self.part1_data = part1_data
 
-    @discord.ui.button(label="Complete Registration (Step 2)", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="Continue Registration (Step 2)", style=discord.ButtonStyle.primary)
     async def complete_registration(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(RegistrationModalPart2(self.part1_data))
 
-class RegistrationModalPart2(discord.ui.Modal, title="Registration - Step 2/2"):
+class RegistrationModalPart2(discord.ui.Modal, title="Registration - Step 2/3"):
     state = discord.ui.TextInput(label="State/Province", placeholder="e.g NJ, or None", required=False)
     country = discord.ui.TextInput(label="Country", placeholder="e.g. USA, Germany", required=True)
     email = discord.ui.TextInput(label="Email", placeholder="Enter your email address", required=True)
@@ -115,10 +116,7 @@ class RegistrationModalPart2(discord.ui.Modal, title="Registration - Step 2/2"):
         self.part1_data = part1_data
 
     async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
-        
         full_data = {
-            "discord_id": interaction.user.id,
             "first_name": self.part1_data["first_name"],
             "last_name": self.part1_data["last_name"],
             "address": self.part1_data["address"],
@@ -130,6 +128,38 @@ class RegistrationModalPart2(discord.ui.Modal, title="Registration - Step 2/2"):
             "recovery_question": self.recovery_question.value,
             "recovery_answer": self.recovery_answer.value
         }
+        
+        view = RegistrationStep3View(full_data)
+        await interaction.response.send_message("Step 2 complete! Click the button below to finish registration.", view=view, ephemeral=True)
+
+class RegistrationStep3View(discord.ui.View):
+    def __init__(self, prev_data):
+        super().__init__(timeout=600)
+        self.prev_data = prev_data
+
+    @discord.ui.button(label="Final Step: Game IDs", style=discord.ButtonStyle.primary)
+    async def open_step3(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(RegistrationModalPart3(self.prev_data))
+
+class RegistrationModalPart3(discord.ui.Modal, title="Registration - Step 3/3"):
+    konami_id = discord.ui.TextInput(label="Konami ID", placeholder="Enter your Konami ID (if applicable)", required=False)
+    lorcana_id = discord.ui.TextInput(label="Lorcana ID", placeholder="Enter your Lorcana ID (if applicable)", required=False)
+    riot_id = discord.ui.TextInput(label="Riot ID", placeholder="Enter your Riot ID (if applicable)", required=False)
+    bandai_id = discord.ui.TextInput(label="Bandai ID", placeholder="Enter your Bandai ID (if applicable)", required=False)
+
+    def __init__(self, prev_data):
+        super().__init__()
+        self.prev_data = prev_data
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        
+        full_data = self.prev_data.copy()
+        full_data["discord_id"] = interaction.user.id
+        full_data["konami_id"] = self.konami_id.value if self.konami_id.value else None
+        full_data["lorcana_id"] = self.lorcana_id.value if self.lorcana_id.value else None
+        full_data["riot_id"] = self.riot_id.value if self.riot_id.value else None
+        full_data["bandai_id"] = self.bandai_id.value if self.bandai_id.value else None
 
         try:
             # upsert so they can update their data if they run it again
@@ -169,6 +199,7 @@ class RegistrationModalPart2(discord.ui.Modal, title="Registration - Step 2/2"):
     app_commands.Choice(name="Yu-Gi-Oh", value="YUGIOH"),
     app_commands.Choice(name="Riftbound", value="RIFTBOUND"),
     app_commands.Choice(name="Lorcana", value="LORCANA"),
+    app_commands.Choice(name="Dragon Ball", value="DBZ")
 ])
 async def award_packs(
         interaction: discord.Interaction,
