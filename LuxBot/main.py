@@ -442,7 +442,6 @@ async def grant_tokens(interaction: discord.Interaction, user: discord.User, amo
             return (
                 supabase.table("Order_History")
                 .insert(data)  # DO NOT include checkout_id
-                .select("checkout_id")  # ask DB to return the generated one
                 .execute()
             )
 
