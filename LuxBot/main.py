@@ -388,8 +388,9 @@ async def grant_tokens(interaction: discord.Interaction, user: discord.User, amo
         return await interaction.response.send_message(
             "You do not have permission to use this command.", ephemeral=True
         )
-
+    print(1)
     await interaction.response.defer(ephemeral=True)
+    print(2)
 
     discord_id = int(user.id)
     creation_date = datetime.datetime.now(datetime.timezone.utc)
