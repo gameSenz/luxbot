@@ -380,116 +380,117 @@ async def tokencheck(interaction: discord.Interaction):
 
     await interaction.followup.send(f"You have **{points}** tokens/points")
 
+import os, asyncio, datetime, traceback, aiohttp, discord
+from discord import app_commands
+
+def _supabase_insert_order(discord_id: int, created_at_iso: str, product: str, email: str):
+    # Ask Supabase to return the generated checkout_id
+    return (
+        supabase.table("Order_History")
+        .insert({
+            "discord_id": discord_id,
+            "created_at": created_at_iso,
+            "product": product,
+            "email": email,
+            "notified": True,
+        })
+        .select("checkout_id")
+        .execute()
+    )
+
+def _supabase_mark_payout(checkout_id: str):
+    return (
+        supabase.table("Order_History")
+        .update({"payout": True})
+        .eq("checkout_id", checkout_id)
+        .execute()
+    )
 
 @bot.tree.command(name="grant_tokens", description="ADMIN ONLY: Grant tokens to a user")
 @app_commands.describe(user="User to grant tokens to", amount="Amount of tokens to grant")
 async def grant_tokens(interaction: discord.Interaction, user: discord.User, amount: int):
-    if not interaction.user.guild_permissions.administrator:
-        return await interaction.response.send_message(
-            "You do not have permission to use this command.", ephemeral=True
-        )
-    print(1)
-    await interaction.response.defer(ephemeral=True)
-    print(2)
+    try:
+        await interaction.response.defer(ephemeral=True)  # ACK fast
+    except Exception:
+        traceback.print_exc()
+        return
+
+    # admin check
+    if interaction.guild is None:
+        return await interaction.edit_original_response(content="Run this in a server channel.")
+    if not interaction.permissions.administrator:
+        return await interaction.edit_original_response(content="You do not have permission to use this command.")
+    if amount <= 0:
+        return await interaction.edit_original_response(content="Amount must be > 0.")
 
     discord_id = int(user.id)
-    creation_date = datetime.datetime.now(datetime.timezone.utc)
+    created_at_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
     product = f"Admin {amount} Token(s)"
     email = "admin@lux.com"
 
-    data = {
-        "discord_id": discord_id,
-        "created_at": creation_date.isoformat(),
-        "product": product,
-        "email": email,
-        "notified": True,
-    }
-
-    # 1) Insert row + get generated checkout_id
+    # 1) Insert into DB (blocking -> thread, with timeout)
     try:
-        def insert_order():
-            return (
-                supabase.table("Order_History")
-                .insert(data)
-                .select("checkout_id")
-                .execute()
-            )
-
-        insert_res = await asyncio.wait_for(asyncio.to_thread(insert_order), timeout=12)
+        insert_res = await asyncio.wait_for(
+            asyncio.to_thread(_supabase_insert_order, discord_id, created_at_iso, product, email),
+            timeout=12
+        )
+        if not insert_res.data:
+            raise RuntimeError(f"Insert returned no data: error={getattr(insert_res,'error',None)!r}")
         checkout_id = insert_res.data[0]["checkout_id"]
     except Exception as e:
-        print(f"DB Error: {e}")
-        return await interaction.followup.send(
-            f"Failed to record in database: `{type(e).__name__}`", ephemeral=True
-        )
+        print("DB insert failed:", repr(e))
+        traceback.print_exc()
+        return await interaction.edit_original_response(content="Failed to record in database.")
 
-    # 2) Call NeatQueue
-    bot_payload = {
+    # 2) NeatQueue call (async with timeout)
+    neatq_key = os.getenv("NEATQUEUE_KEY") or ""
+    payload = {
         "channel_id": 1463201410886930453,
         "stat": "points",
         "value": int(amount),
-        "user_id": int(discord_id),
+        "user_id": discord_id,
         "role_id": None,
     }
-
-    headers = {
-        "Authorization": os.getenv("NEATQUEUE_KEY") or "",
-        "Content-Type": "application/json",
-    }
-
-    neatq_ok = False
-    neatq_status = None
-    neatq_body = ""
+    headers = {"Authorization": neatq_key, "Content-Type": "application/json"}
 
     try:
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=12)) as session:
-            async with session.post(
-                    "https://api.neatqueue.com/api/v2/add/stats",
-                    json=bot_payload,
-                    headers=headers,
-            ) as neatq_resp:
-                neatq_status = neatq_resp.status
-                neatq_body = await neatq_resp.text()
-                neatq_ok = (neatq_resp.status == 200)
+            async with session.post("https://api.neatqueue.com/api/v2/add/stats",
+                                    json=payload, headers=headers) as resp:
+                status = resp.status
+                body = await resp.text()
     except Exception as e:
-        neatq_status = "EXCEPTION"
-        neatq_body = str(e)
+        status = "EXCEPTION"
+        body = str(e)
 
-    # 3) Update payout flag if NeatQueue succeeded
-    if neatq_ok:
-        try:
-            def update_payout():
-                return (
-                    supabase.table("Order_History")
-                    .update({"payout": True})
-                    .eq("checkout_id", checkout_id)
-                    .execute()
-                )
-
-            await asyncio.wait_for(asyncio.to_thread(update_payout), timeout=12)
-        except Exception as e:
-            print(f"Payout update failed: {e}")
-            await interaction.followup.send(
-                f"Granted **{amount}** tokens to **{user.display_name}** (NeatQueue OK), but DB payout update failed.",
-                ephemeral=True
-            )
-        else:
-            await interaction.followup.send(
-                f"Successfully granted **{amount}** tokens to **{user.display_name}**.",
-                ephemeral=True
-            )
-    else:
-        print("NeatQ failed:", neatq_status, neatq_body)
-        await interaction.followup.send(
-            f"Tokens recorded in DB (checkout_id `{checkout_id}`), but NeatQueue update failed (Status `{neatq_status}`).",
-            ephemeral=True
+    if status != 200:
+        print("NeatQueue failed:", status, body)
+        # Still respond to admin so it doesn't "hang"
+        return await interaction.edit_original_response(
+            content=f"Tokens recorded in DB (checkout_id `{checkout_id}`), but NeatQueue failed (Status `{status}`)."
         )
 
-    # 4) DM user (not part of interaction response)
+    # 3) Mark payout in DB (blocking -> thread, with timeout)
+    try:
+        await asyncio.wait_for(asyncio.to_thread(_supabase_mark_payout, checkout_id), timeout=12)
+    except Exception as e:
+        print("DB payout update failed:", repr(e))
+        traceback.print_exc()
+        return await interaction.edit_original_response(
+            content=f"Granted **{amount}** tokens to **{user.display_name}** (NeatQueue OK), but DB payout update failed."
+        )
+
+    # 4) Final response (edit original is most reliable after defer)
+    await interaction.edit_original_response(
+        content=f"✅ Successfully granted **{amount}** tokens to **{user.display_name}**. (checkout_id `{checkout_id}`)"
+    )
+
+    # DM user (optional)
     try:
         await user.send(f"You have been granted **{amount}** tokens by an Admin.")
     except discord.Forbidden:
         pass
+
 
     # No need for duplicate followup send here as it's handled above in the 'else' block or try/except
 
