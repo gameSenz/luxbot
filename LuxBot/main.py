@@ -457,7 +457,22 @@ async def grant_tokens(interaction: discord.Interaction, user: discord.User, amo
                 content=f"DB insert failed: `{err_msg}`"
             )
 
-        checkout_id = insert_res.data[0]["checkout_id"]
+        def fetch_checkout_id():
+            return (
+                supabase.table("Order_History")
+                .select("checkout_id")
+                .eq("discord_id", discord_id)
+                .eq("created_at", created_at_iso)
+                .limit(1)
+                .execute()
+            )
+
+        fetch_res = await asyncio.wait_for(asyncio.to_thread(fetch_checkout_id), timeout=12)
+
+        if getattr(fetch_res, "error", None) or not fetch_res.data:
+            return await interaction.edit_original_response(content="Inserted row, but couldn’t fetch checkout_id.")
+
+        checkout_id = fetch_res.data[0]["checkout_id"]
         print("Generated checkout_id:", checkout_id)
 
     except Exception as e:
