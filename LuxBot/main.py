@@ -396,21 +396,23 @@ async def grant_tokens(interaction: discord.Interaction, user: discord.User, amo
     product = f"Admin {amount} Token(s)"
     email = "admin@lux.com"
 
+    data = {
+                    "discord_id": discord_id,
+                    "created_at": creation_date.isoformat(),
+                    "product": product,
+                    "email": email,
+                    "notified": True,
+                }
+
     # Use a single session for all requests in this command
     async with aiohttp.ClientSession() as session:
         try:
             # Record the award in Supabase
             # Since supabase-py is synchronous, we run it in a thread to avoid blocking the event loop
             def insert_order():
-                return supabase.table("Order_History").insert({
-                    "discord_id": discord_id,
-                    "created_at": creation_date.isoformat(),
-                    "product": product,
-                    "email": email,
-                    "notified": True,
-                }).execute()
+                return supabase.table("Order_History").insert(data).select("checkout_id").execute()
 
-            await asyncio.to_thread(insert_order)
+            response = await asyncio.to_thread(insert_order)
             
         except Exception as e:
             print(f"DB Error: {e}")
@@ -447,7 +449,7 @@ async def grant_tokens(interaction: discord.Interaction, user: discord.User, amo
                     def update_payout():
                         return supabase.table("Order_History") \
                             .update({"payout": True}) \
-                            .eq("created_at", creation_date.isoformat()) \
+                            .eq("checkout_id", response.data[0]["checkout_id"]) \
                             .execute()
                     
                     await asyncio.to_thread(update_payout)
