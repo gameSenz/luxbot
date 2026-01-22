@@ -434,39 +434,35 @@ async def grant_tokens(interaction: discord.Interaction, user: discord.User, amo
         "product": product,
         "email": email,
         "notified": True,
+        "payout": False,
     }
 
-    # 1) Insert into DB (blocking -> thread, with timeout)
     try:
         def insert_order():
             return (
                 supabase.table("Order_History")
-                .insert(data)
-                .select("checkout_id")
+                .insert(data)  # DO NOT include checkout_id
+                .select("checkout_id")  # ask DB to return the generated one
                 .execute()
             )
 
         insert_res = await asyncio.wait_for(asyncio.to_thread(insert_order), timeout=12)
 
-        # IMPORTANT: supabase-py returns errors here, not always exceptions
         if getattr(insert_res, "error", None):
-            print("SUPABASE INSERT ERROR:", insert_res.error)
+            err = insert_res.error
+            err_msg = err.get("message") if isinstance(err, dict) else str(err)
+            print("SUPABASE INSERT ERROR:", err)
             return await interaction.edit_original_response(
-                content=f"DB insert failed: `{insert_res.error.message}`"
-            )
-
-        if not insert_res.data:
-            print("SUPABASE INSERT EMPTY DATA:", insert_res)
-            return await interaction.edit_original_response(
-                content="DB insert failed: returned no data."
+                content=f"DB insert failed: `{err_msg}`"
             )
 
         checkout_id = insert_res.data[0]["checkout_id"]
+        print("Generated checkout_id:", checkout_id)
 
     except Exception as e:
         print("DB Exception:", repr(e))
         return await interaction.edit_original_response(
-            content=f"DB exception: `{type(e).__name__}`"
+            content=f"DB exception: `{type(e).__name__}: {e}`"
         )
 
     # 2) NeatQueue call (async with timeout)
