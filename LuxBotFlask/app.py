@@ -109,6 +109,10 @@ def stripe_webhook():
         return abort(400, description="Signature not provided")
     event = None
 
+
+    print("Webhook hit. Has signature header?", bool(sig_header))
+    print("Payload bytes:", len(stripe_payload))
+
     try:
         # Constructs Stripe Event Obj ft Validation
         event = stripe.Webhook.construct_event(
@@ -116,6 +120,9 @@ def stripe_webhook():
             sig_header=sig_header,
             secret=stripe_webhook_key
         )
+    except Exception as e2:
+        print("Webhook construct_event failed:", repr(e2))
+        return abort(400, description="Webhook signature verification failed")
     except ValueError as e:
         # Invalid payload
         print('Error parsing payload: {}'.format(str(e)))
@@ -211,6 +218,7 @@ def stripe_webhook():
             .eq("checkout_id", checkout_id) \
             .execute()
 
+    print("Webhook OK:", event["type"])
 
     return '', 200
 
