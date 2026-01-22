@@ -26,11 +26,11 @@ supabase: Client = create_client(
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 stripe_webhook_key = os.getenv('STRIPE_WEBHOOK_SECRET')
 port=8080
-fiveToken_id = 'price_1Snn5iH7XmaZG1io0gnLaC0C'
-tenToken_id = 'price_1Snn4oH7XmaZG1ioVmq8mmTQ'
-twentyToken_id = 'price_1Snn6CH7XmaZG1io5TznCZlY'
-fiftyToken_id = 'price_1Snn7WH7XmaZG1iodmSTvLs8'
-hundredToken_id = 'price_1Snn9PH7XmaZG1iosfYkmSBz'
+fiveToken_id = 'price_1SsDxkHwLZuKYVfDOOwRQ2uP'
+tenToken_id = 'price_1Ss8PSHwLZuKYVfDUFqqLQpF'
+twentyToken_id = 'price_1Ss8POHwLZuKYVfDIS9beofb'
+fiftyToken_id = 'price_1Ss8PKHwLZuKYVfDXdZHTyjK'
+hundredToken_id = 'price_1Ss8PFHwLZuKYVfDW37eGE4T'
 
 token_map = {
     "five_tokens": fiveToken_id,
