@@ -380,88 +380,115 @@ async def tokencheck(interaction: discord.Interaction):
 
     await interaction.followup.send(f"You have **{points}** tokens/points")
 
+    @bot.tree.command(name="grant_tokens", description="ADMIN ONLY: Grant tokens to a user")
+    @app_commands.describe(user="User to grant tokens to", amount="Amount of tokens to grant")
+    async def grant_tokens(interaction: discord.Interaction, user: discord.User, amount: int):
+        if not interaction.user.guild_permissions.administrator:
+            return await interaction.response.send_message(
+                "You do not have permission to use this command.", ephemeral=True
+            )
 
-@bot.tree.command(name="grant_tokens", description="ADMIN ONLY: Grant tokens to a user")
-@app_commands.describe(user="User to grant tokens to", amount="Amount of tokens to grant")
-async def grant_tokens(interaction: discord.Interaction, user: discord.User, amount: int):
-    if not interaction.user.guild_permissions.administrator:
-        return await interaction.response.send_message(
-            "You do not have permission to use this command.", ephemeral=True
-        )
+        await interaction.response.defer(ephemeral=True)
 
-    await interaction.response.defer(ephemeral=True)
+        discord_id = int(user.id)
+        creation_date = datetime.datetime.now(datetime.timezone.utc)
+        product = f"Admin {amount} Token(s)"
+        email = "admin@lux.com"
 
-    discord_id = int(user.id)
-    creation_date = datetime.now(datetime.timezone.utc)
-    product = f"Admin {amount} Token(s)"
-    email = "admin@lux.com"
+        data = {
+            "discord_id": discord_id,
+            "created_at": creation_date.isoformat(),
+            "product": product,
+            "email": email,
+            "notified": True,
+        }
 
-    data = {
-                    "discord_id": discord_id,
-                    "created_at": creation_date.isoformat(),
-                    "product": product,
-                    "email": email,
-                    "notified": True,
-                }
-
-    # Use a single session for all requests in this command
-    async with aiohttp.ClientSession() as session:
+        # 1) Insert row + get generated checkout_id
         try:
-            # Record the award in Supabase
-            # Since supabase-py is synchronous, we run it in a thread to avoid blocking the event loop
             def insert_order():
-                return supabase.table("Order_History").insert(data).select("checkout_id").execute()
+                return (
+                    supabase.table("Order_History")
+                    .insert(data)
+                    .select("checkout_id")
+                    .execute()
+                )
 
-            response = await asyncio.to_thread(insert_order)
-            
+            insert_res = await asyncio.wait_for(asyncio.to_thread(insert_order), timeout=12)
+            checkout_id = insert_res.data[0]["checkout_id"]
         except Exception as e:
             print(f"DB Error: {e}")
-            await interaction.followup.send(f"Failed to record in database.", ephemeral=True)
-            return
-        
-        try:
-            bot_payload = {
-                "channel_id": 1463201410886930453,
-                "stat": 'points',
-                "value": int(amount),
-                "user_id": int(discord_id),
-                "role_id": None
-            }
-            # Authenticating API Key + Declaring JSON to be sent
-            headers = {
-                "Authorization": os.getenv("NEATQUEUE_KEY"),
-                "Content-Type": "application/json",
-            }
-            # send a POST req to NeatQ to process point change
-            async with session.post(
-                "https://api.neatqueue.com/api/v2/add/stats",
-                json=bot_payload,
-                headers=headers,
-                timeout=10,
-            ) as response:
-                print(response.status)
-                # applies payout, or advises user if NeatQ is having issues
-                if response.status != 200:
-                    text = await response.text()
-                    print("Failed to call NeatQ, Contact an Admin to receive tokens", response.status, text)
-                    await interaction.followup.send(f"Tokens recorded in DB, but NeatQ update failed (Status {response.status}).", ephemeral=True)
-                else:
-                    def update_payout():
-                        return supabase.table("Order_History") \
-                            .update({"payout": True}) \
-                            .eq("checkout_id", response.data[0]["checkout_id"]) \
-                            .execute()
-                    
-                    await asyncio.to_thread(update_payout)
-                    await interaction.followup.send(f"Successfully granted **{amount}** tokens to **{user.display_name}**.", ephemeral=True)
-        except Exception as e:
-            print(f"Failed to grant tokens: {e}")
-            return await interaction.followup.send(f"Failed to grant tokens: {e}", ephemeral=True)
+            return await interaction.followup.send(
+                f"Failed to record in database: `{type(e).__name__}`", ephemeral=True
+            )
 
-    try:
-        await user.send(f"You have been granted **{amount}** tokens by an Admin.")
-    except discord.Forbidden:
-        pass
+        # 2) Call NeatQueue
+        bot_payload = {
+            "channel_id": 1463201410886930453,
+            "stat": "points",
+            "value": int(amount),
+            "user_id": int(discord_id),
+            "role_id": None,
+        }
+
+        headers = {
+            "Authorization": os.getenv("NEATQUEUE_KEY") or "",
+            "Content-Type": "application/json",
+        }
+
+        neatq_ok = False
+        neatq_status = None
+        neatq_body = ""
+
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=12)) as session:
+                async with session.post(
+                        "https://api.neatqueue.com/api/v2/add/stats",
+                        json=bot_payload,
+                        headers=headers,
+                ) as neatq_resp:
+                    neatq_status = neatq_resp.status
+                    neatq_body = await neatq_resp.text()
+                    neatq_ok = (neatq_resp.status == 200)
+        except Exception as e:
+            neatq_status = "EXCEPTION"
+            neatq_body = str(e)
+
+        # 3) Update payout flag if NeatQueue succeeded
+        if neatq_ok:
+            try:
+                def update_payout():
+                    return (
+                        supabase.table("Order_History")
+                        .update({"payout": True})
+                        .eq("checkout_id", checkout_id)
+                        .execute()
+                    )
+
+                await asyncio.wait_for(asyncio.to_thread(update_payout), timeout=12)
+            except Exception as e:
+                print(f"Payout update failed: {e}")
+                await interaction.followup.send(
+                    f"Granted **{amount}** tokens to **{user.display_name}** (NeatQueue OK), but DB payout update failed.",
+                    ephemeral=True
+                )
+            else:
+                await interaction.followup.send(
+                    f"Successfully granted **{amount}** tokens to **{user.display_name}**.",
+                    ephemeral=True
+                )
+        else:
+            print("NeatQ failed:", neatq_status, neatq_body)
+            await interaction.followup.send(
+                f"Tokens recorded in DB (checkout_id `{checkout_id}`), but NeatQueue update failed (Status `{neatq_status}`).",
+                ephemeral=True
+            )
+
+        # 4) DM user (not part of interaction response)
+        try:
+            await user.send(f"You have been granted **{amount}** tokens by an Admin.")
+        except discord.Forbidden:
+            pass
+
     # No need for duplicate followup send here as it's handled above in the 'else' block or try/except
 
 @bot.tree.command(name="create_tournament", description="ADMIN ONLY: Create a new tournament")
