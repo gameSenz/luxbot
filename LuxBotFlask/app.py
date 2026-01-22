@@ -74,6 +74,7 @@ def create_checkout():
     session = stripe.checkout.Session.create(
         line_items=[{"price": price_id, "quantity": 1}],
         mode='payment',
+        allow_promotion_codes=True,
         success_url="https://api.luxurygaming.com/payment-complete",
         cancel_url="https://api.luxurygaming.com/cancel",
         metadata={
