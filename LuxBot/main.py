@@ -428,6 +428,14 @@ async def grant_tokens(interaction: discord.Interaction, user: discord.User, amo
     product = f"Admin {amount} Token(s)"
     email = "admin@lux.com"
 
+    data = {
+        "discord_id": discord_id,
+        "created_at": created_at_iso,
+        "product": product,
+        "email": email,
+        "notified": True,
+    }
+
     # 1) Insert into DB (blocking -> thread, with timeout)
     try:
         def insert_order():
