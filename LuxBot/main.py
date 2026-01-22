@@ -447,6 +447,7 @@ async def grant_tokens(interaction: discord.Interaction, user: discord.User, amo
             )
 
         insert_res = await asyncio.wait_for(asyncio.to_thread(insert_order), timeout=12)
+        print(insert_res.data)
 
         if getattr(insert_res, "error", None):
             err = insert_res.error
