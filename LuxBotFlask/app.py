@@ -75,6 +75,7 @@ def create_checkout():
         line_items=[{"price": price_id, "quantity": 1}],
         mode='payment',
         allow_promotion_codes=True,
+        automatic_tax={"enabled": True},
         success_url="https://api.luxurygaming.com/payment-complete",
         cancel_url="https://api.luxurygaming.com/cancel",
         metadata={
