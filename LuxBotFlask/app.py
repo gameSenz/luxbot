@@ -76,7 +76,8 @@ def create_checkout():
         mode='payment',
         allow_promotion_codes=True,
         automatic_tax={"enabled": True},
-        tax_behavior="exclusive",
+        customer="{{CUSTOMER_ID}}",
+        customer_update={"address": "auto"},
         success_url="https://api.luxurygaming.com/payment-complete",
         cancel_url="https://api.luxurygaming.com/cancel",
         metadata={
