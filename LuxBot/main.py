@@ -392,7 +392,6 @@ async def grant_tokens(interaction: discord.Interaction, user: discord.User, amo
     await interaction.response.defer(ephemeral=True)
 
     discord_id = int(user.id)
-    creation_date = datetime.now(datetime.timezone.utc)
     product = f"Admin {amount} Token(s)"
     email = "admin@lux.com"
 
@@ -404,7 +403,6 @@ async def grant_tokens(interaction: discord.Interaction, user: discord.User, amo
             def insert_order():
                 return supabase.table("Order_History").insert({
                     "discord_id": discord_id,
-                    "created_at": creation_date.isoformat(),
                     "product": product,
                     "email": email,
                     "notified": True,
