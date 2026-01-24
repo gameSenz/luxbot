@@ -439,7 +439,7 @@ def _supabase_mark_payout(checkout_id: str):
 
 @bot.tree.command(name="grant_tokens", description="ADMIN ONLY: Grant tokens to a user")
 @app_commands.describe(user="User to grant tokens to", amount="Amount of tokens to grant")
-async def grant_tokens(interaction: discord.Interaction, user: discord.User, amount: int):
+async def grant_tokens(interaction: discord.Interaction, user: discord.User, amount: int, reason: str):
     try:
         await interaction.response.defer(ephemeral=True)  # ACK fast
     except Exception:
@@ -464,6 +464,7 @@ async def grant_tokens(interaction: discord.Interaction, user: discord.User, amo
         "created_at": created_at_iso,
         "product": product,
         "email": email,
+        "receipt_url": reason,
         "notified": True,
         "payout": False,
     }
@@ -556,7 +557,7 @@ async def grant_tokens(interaction: discord.Interaction, user: discord.User, amo
 
     # DM user (optional)
     try:
-        await user.send(f"You have been granted **{amount}** tokens by an Admin.")
+        await user.send(f"You have been granted **{amount}** tokens by an Admin.\nReason: {reason}")
     except discord.Forbidden:
         pass
 
