@@ -571,9 +571,14 @@ async def grant_tokens(interaction: discord.Interaction, user: discord.User, amo
     player_count="Amt of players",
     cost="Cost of tournament"
 )
+@app_commands.choices(type=[
+    app_commands.Choice(name="Single Elim", value="single_elimination"),
+    app_commands.Choice(name="Swiss", value="swiss"),
+])
 async def create_tournament(interaction: discord.Interaction,
                             name: str,
                             desc: str,
+                            type: app_commands.Choice[str],
                             player_count: int,
                             cost: int
                             ):
@@ -588,9 +593,9 @@ async def create_tournament(interaction: discord.Interaction,
     tournament_payload = {
         "channel_id": int(interaction.channel_id),          # int
         "maximum_participants": int(player_count),           # int
-        "tournament_type": "single_elimination",        # string
-        "auto_start_on_fill": True,                    # boolean
-        "auto_create_matches": True,                    # boolean
+        "tournament_type": type.value,        # string
+        "auto_start_on_fill": False,                    # boolean
+        "auto_create_matches": False,                    # boolean
         "auto_create_new_tournament": int(2),                # int
         "team_size": int(1),                              # int | null
         "name": str(name),                                   # string | null
