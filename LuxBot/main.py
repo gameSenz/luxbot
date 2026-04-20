@@ -28,9 +28,9 @@ FLASK_BASE_URL = str(os.getenv("FLASK_URL"))
 PACK_TYPES = {
     "RIFTBOUND": "Riftbound",
     "YUGIOH": "Yu-Gi-Oh (Soon)",
-    "ONEPIECE": "One Piece (Soon)",
+    "ONEPIECE": "One Piece",
     "POKEMON": "Pokemon (Soon)",
-    "LORCANA": "Lorcana (Soon)",
+    "LORCANA": "Lorcana",
     "DBZ": "Dragon Ball (Soon)",
 }
 
