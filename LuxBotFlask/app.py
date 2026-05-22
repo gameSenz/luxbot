@@ -30,12 +30,14 @@ fiveToken_id = 'price_1SsDxkHwLZuKYVfDOOwRQ2uP'
 tenToken_id = 'price_1Ss8PSHwLZuKYVfDUFqqLQpF'
 twentyToken_id = 'price_1Ss8POHwLZuKYVfDIS9beofb'
 fiftyToken_id = 'price_1Ss8PKHwLZuKYVfDXdZHTyjK'
+# thirtyFiveToken_id = ''
 hundredToken_id = 'price_1Ss8PFHwLZuKYVfDW37eGE4T'
 
 token_map = {
     "five_tokens": fiveToken_id,
     "ten_tokens": tenToken_id,
     "twenty_tokens": twentyToken_id,
+    # "thirty_five_tokens": thirtyFiveToken_id,
     "fifty_tokens": fiftyToken_id,
     "hundred_tokens": hundredToken_id,
 }
@@ -44,6 +46,7 @@ price_map = {
     fiveToken_id: '5',
     tenToken_id: '10',
     twentyToken_id: '20',
+    # thirtyFiveToken_id: '35',
     fiftyToken_id: '50',
     hundredToken_id: '100',
 }
@@ -138,10 +141,11 @@ def stripe_webhook():
     if event['type'] == 'checkout.session.completed':
         # Data has info on the session obj
         # https://docs.stripe.com/api/checkout/sessions/object
-        session = event["data"]["object"]
+        session = event["data"]["object"].to_dict_recursive()
 
         # Gets discord ID through metadata created with checkout session
         discord_id = session.get("metadata", {}).get("discord_id")
+
         if not discord_id:
             return abort(400, description="Discord ID not provided")
         # grabs price_id for interaction with dict

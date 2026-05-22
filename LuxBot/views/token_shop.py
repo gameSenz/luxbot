@@ -7,6 +7,7 @@ PRODUCT_LABELS = {
     "five_tokens": "5 Tokens",
     "ten_tokens": "10 Tokens",
     "twenty_tokens": "20 Tokens",
+    # "thirty_five_tokens": "35 Tokens",
     "fifty_tokens": "50 Tokens",
     "hundred_tokens": "100 Tokens",
 }
@@ -80,6 +81,7 @@ class TokenSelect(discord.ui.Select):
             discord.SelectOption(label="5 Tokens | $7.50", value="five_tokens", description="You will receive tokens eligible for use in tournaments. (Non refundable)"),
             discord.SelectOption(label="10 Tokens | $12.50", value="ten_tokens", description="You will receive tokens eligible for use in tournaments. (Non refundable)"),
             discord.SelectOption(label="20 Tokens | $22.50", value="twenty_tokens", description="You will receive tokens eligible for use in tournaments. (Non refundable)"),
+            # discord.SelectOption(label="35 Tokens | $37.50", value="thirty_five_tokens", description="You will receive tokens eligible for use in tournaments. (Non refundable)"),
             discord.SelectOption(label="50 Tokens | $52.50", value="fifty_tokens", description="You will receive tokens eligible for use in tournaments. (Non refundable)"),
             discord.SelectOption(label="100 Tokens | $102.50", value="hundred_tokens", description="You will receive tokens eligible for use in tournaments. (Non refundable)"),
         ]
